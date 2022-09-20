@@ -58,13 +58,18 @@ class PrintStm : public Stm {
 class Exp {
   // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`,
-  //        and ` IntAndTable *Interp(Table *)`
+  //        and ` IntAndTable Interp(Table *)`
+  public:
+    virtual int MaxArgs() const = 0;
+    virtual IntAndTable Interp(Table *) const = 0;
 };
 
 class IdExp : public Exp {
  public:
   explicit IdExp(std::string id) : id(std::move(id)) {}
   // TODO: you'll have to add some definitions here (lab1).
+  int MaxArgs() const override;
+  IntAndTable Interp(Table *) const override;
 
  private:
   std::string id;
@@ -74,6 +79,8 @@ class NumExp : public Exp {
  public:
   explicit NumExp(int num) : num(num) {}
   // TODO: you'll have to add some definitions here.
+  int MaxArgs() const override;
+  IntAndTable Interp(Table *) const override;
 
  private:
   int num;
@@ -83,6 +90,8 @@ class OpExp : public Exp {
  public:
   OpExp(Exp *left, BinOp oper, Exp *right)
       : left(left), oper(oper), right(right) {}
+  int MaxArgs() const override;
+  IntAndTable Interp(Table *) const override;
 
  private:
   Exp *left;
@@ -93,6 +102,8 @@ class OpExp : public Exp {
 class EseqExp : public Exp {
  public:
   EseqExp(Stm *stm, Exp *exp) : stm(stm), exp(exp) {}
+  int MaxArgs() const override;
+  IntAndTable Interp(Table *) const override;
 
  private:
   Stm *stm;
@@ -103,13 +114,24 @@ class ExpList {
  public:
   // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`, `int NumExps()`,
-  //        and ` IntAndTable *Interp(Table *)`
+  //        and ` IntAndTable Interp(Table *)`
+  virtual int MaxArgs() const = 0;
+  // ExpList的MaxArgs返回的是其中所有表达式中最多的print参数个数
+  // 其本身的expNum不参与比较
+  virtual IntAndTable Interp(Table *) const = 0;
+  virtual ExpList *getNext() const = 0;
+  int expNum;
 };
 
 class PairExpList : public ExpList {
  public:
-  PairExpList(Exp *exp, ExpList *tail) : exp(exp), tail(tail) {}
+  PairExpList(Exp *exp, ExpList *tail) : exp(exp), tail(tail) {
+    expNum = tail->expNum + 1;
+  }
   // TODO: you'll have to add some definitions here (lab1).
+  int MaxArgs() const override;
+  IntAndTable Interp(Table *) const override;
+  ExpList *getNext() const override;
  private:
   Exp *exp;
   ExpList *tail;
@@ -117,8 +139,13 @@ class PairExpList : public ExpList {
 
 class LastExpList : public ExpList {
  public:
-  LastExpList(Exp *exp) : exp(exp) {}
+  LastExpList(Exp *exp) : exp(exp) {
+    expNum = 1;
+  }
   // TODO: you'll have to add some definitions here (lab1).
+  int MaxArgs() const override;
+  IntAndTable Interp(Table *) const override;
+  ExpList *getNext() const override;
  private:
   Exp *exp;
 };
@@ -129,6 +156,7 @@ class Table {
       : id(std::move(id)), value(value), tail(tail) {}
   int Lookup(const std::string &key) const;
   Table *Update(const std::string &key, int val) const;
+  void PrintTable() const;
 
  private:
   std::string id;
