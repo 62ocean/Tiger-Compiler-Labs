@@ -51,6 +51,8 @@ private:
   int char_pos_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
 
+  int strlen_dif_;
+
   /**
    * NOTE: do not change all the funtion signature below, which is used by
    * flexc++ internally
