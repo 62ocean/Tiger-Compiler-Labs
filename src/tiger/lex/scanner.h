@@ -52,6 +52,7 @@ private:
   std::unique_ptr<err::ErrorMsg> errormsg_;
 
   int strlen_dif_;
+  bool str_error_;
 
   /**
    * NOTE: do not change all the funtion signature below, which is used by

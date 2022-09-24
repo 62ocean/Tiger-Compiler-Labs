@@ -19,7 +19,7 @@ digits [0-9]+
   *
   * All the tokens:
 			*   Parser::ID
-  *   Parser::STRING
+			*   Parser::STRING
 			*   Parser::INT
 			*   Parser::COMMA
 			*   Parser::COLON
@@ -81,7 +81,6 @@ digits [0-9]+
 "do" { adjust(); return Parser::DO;}
 "of" { adjust(); return Parser::OF;}
 "nil" { adjust(); return Parser::NIL;}
- /* TODO: Put your lab2 code here */
 
  /* Punctuation symbols */
 "(" { adjust(); return Parser::LPAREN;}
@@ -109,13 +108,14 @@ digits [0-9]+
 "." { adjust(); return Parser::DOT;}
 
 "/*" {
-	adjust();
 	comment_level_ ++;
 	// printf("comment!");
+	more();
 	begin(StartCondition__::COMMENT);
 }
 \" {
 	strlen_dif_ = 1;
+	str_error_ = false;
 	begin(StartCondition__::STR);
 }
 
@@ -134,16 +134,25 @@ digits [0-9]+
 
 <COMMENT> {
 	"/*" {
-		adjust();
+		more();
 		comment_level_ ++;
 	}
 	"*/" {
-		adjust();
 		comment_level_ --;
-		if (comment_level_ == 1) begin(StartCondition__::INITIAL);
+		if (comment_level_ == 1) {
+			adjust();
+			begin(StartCondition__::INITIAL);
+		} else {
+			more();
+		}
 	}
-	\n |
-	. {adjust();}
+	\n {more(); errormsg_->Newline();}
+	. {more();}
+	<<EOF>> {
+		/* adjust(); */
+		errormsg_->Error(errormsg_->tok_pos_, "unclosed comment");
+		begin(StartCondition__::INITIAL);
+	}
 }
 
 <STR> {
@@ -157,30 +166,31 @@ digits [0-9]+
 		char_pos_ += strlen_dif_;
 
 		begin(StartCondition__::INITIAL);
-		return Parser::STRING;
+		if (!str_error_) return Parser::STRING;
+		else errormsg_->Error(errormsg_->tok_pos_, "illegal string");
 	}
-	"\\n" {
+	\\n {
 		std::string token = matched();
 		setMatched(token.substr(0, token.size() - 2) + "\n");
 
 		strlen_dif_ ++;
 		more();
 	}
-	"\\t" {
+	\\t {
 		std::string token = matched();
 		setMatched(token.substr(0, token.size() - 2) + "\t");
 
 		strlen_dif_ ++;
 		more();
 	}
-	"\\\\" {
+	\\\\ {
 		std::string token = matched();
 		setMatched(token.substr(0, token.size() - 2) + "\\");
 
 		strlen_dif_ ++;
 		more();
 	}
-	"\\\"" {
+	\\\" {
 		std::string token = matched();
 		setMatched(token.substr(0, token.size() - 2) + "\"");
 
@@ -192,6 +202,7 @@ digits [0-9]+
 		std::string token = matched();
 		std::string numstr = token.substr(token.size() - 3, 3);
 		int num = std::stoi(numstr, nullptr, 10);
+		if (num > 127) str_error_ = true;
 		/* std::cout << matched() << ' ' << numstr << ' ' << num << ' '; */
 		setMatched(token.substr(0,token.size()-4) + (char)num);
 
@@ -209,27 +220,54 @@ digits [0-9]+
 		strlen_dif_ += 2;
 		more();
 	} 
-	"\\" {
+	\\/\n |
+	\\/\t |
+	\\/\f |
+	\\/\x20 {
 		strlen_dif_ ++;
 		setMatched(matched().substr(0, matched().size() - 1));
 		more();
 		begin(StartCondition__::IGNORE);
 	}
+	\n {more(); errormsg_->Newline();}
 	. {more();}
+	<<EOF>> {
+		/* adjust(); */
+		errormsg_->Error(errormsg_->tok_pos_, "unclosed string");
+		begin(StartCondition__::INITIAL);
+	}
 }
 
 <IGNORE> {
-	"\\" {
+	\\ {
 		strlen_dif_ ++;
 		setMatched(matched().substr(0, matched().size() - 1));
 		more();
 		begin(StartCondition__::STR);
 	}
-	\n |
-	. {
+	\n {
+		errormsg_->Newline();
 		strlen_dif_ ++;
 		setMatched(matched().substr(0, matched().size() - 1));
 		more();
+	}
+	\t |
+	\f |
+	\x20 {
+		strlen_dif_ ++;
+		setMatched(matched().substr(0, matched().size() - 1));
+		more();
+	}
+	. {
+		strlen_dif_ ++; 
+		setMatched(matched().substr(0, matched().size() - 1));
+		more();
+		str_error_ = true;
+	}
+	<<EOF>> {
+		/* adjust(); */
+		errormsg_->Error(errormsg_->tok_pos_, "unclosed ignore string");
+		begin(StartCondition__::INITIAL);
 	}
 }
 
