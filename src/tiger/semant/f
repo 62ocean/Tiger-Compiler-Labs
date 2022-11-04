@@ -1,0 +1,13 @@
+14 21 crash
+16 检测cycle
+17 2个undefined
+18 19 20
+
+; 调用函数，不要先检查size，type和size一起检查
+; 相同名字空间的重名检查
+; nil定义var必须指明类型的检查
+; break必须在loop里
+检查不合法的类型嵌套 16
+; 循环变量不能被赋值
+
+33 crash

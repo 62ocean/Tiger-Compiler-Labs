@@ -86,7 +86,7 @@ public:
   virtual ~Var() = default;
   virtual void Print(FILE *out, int d) const = 0;
   virtual type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
-                               int labelcount,
+                               long long labelcount,
                                err::ErrorMsg *errormsg) const = 0;
   virtual tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
@@ -104,7 +104,7 @@ public:
   ~SimpleVar() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -122,7 +122,7 @@ public:
   ~FieldVar() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -140,7 +140,7 @@ public:
   ~SubscriptVar() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -158,7 +158,7 @@ public:
   virtual ~Exp() = default;
   virtual void Print(FILE *out, int d) const = 0;
   virtual type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
-                               int labelcount,
+                               long long labelcount,
                                err::ErrorMsg *errormsg) const = 0;
   virtual tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
@@ -177,7 +177,7 @@ public:
   ~VarExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -191,7 +191,7 @@ public:
   ~NilExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -207,7 +207,7 @@ public:
   ~IntExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -223,7 +223,7 @@ public:
   ~StringExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -243,7 +243,7 @@ public:
   ~CallExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -261,7 +261,7 @@ public:
   ~OpExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -279,7 +279,7 @@ public:
   ~RecordExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -295,7 +295,7 @@ public:
   ~SeqExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -312,7 +312,7 @@ public:
   ~AssignExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -329,7 +329,7 @@ public:
   ~IfExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -346,7 +346,7 @@ public:
   ~WhileExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -365,7 +365,7 @@ public:
   ~ForExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -379,7 +379,7 @@ public:
   ~BreakExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -397,7 +397,7 @@ public:
   ~LetExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -415,7 +415,7 @@ public:
   ~ArrayExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -429,7 +429,7 @@ public:
   ~VoidExp() override;
 
   void Print(FILE *out, int d) const override;
-  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  type::Ty *SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
@@ -446,7 +446,7 @@ public:
   int pos_;
   virtual ~Dec() = default;
   virtual void Print(FILE *out, int d) const = 0;
-  virtual void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  virtual void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                           err::ErrorMsg *errormsg) const = 0;
   virtual tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                              tr::Level *level, temp::Label *label,
@@ -466,7 +466,7 @@ public:
   ~FunctionDec() override;
 
   void Print(FILE *out, int d) const override;
-  void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
                      temp::Label *label, 
@@ -486,7 +486,7 @@ public:
   ~VarDec() override;
 
   void Print(FILE *out, int d) const override;
-  void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
                      temp::Label *label, 
@@ -502,7 +502,7 @@ public:
   ~TypeDec() override;
 
   void Print(FILE *out, int d) const override;
-  void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
+  void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, long long labelcount,
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
                      temp::Label *label, 
