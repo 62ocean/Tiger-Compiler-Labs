@@ -122,9 +122,12 @@ public:
 };
 
 void ProgTr::Translate() {
-  // FillBaseVEnv();
-  // FillBaseTEnv();
-
+  FillBaseVEnv();
+  FillBaseTEnv();
+  tr::ExpAndTy *tr_tree = absyn_tree_->Translate(
+    venv_.get(), tenv_.get(), main_level_.get(), nullptr, errormsg_.get()
+  );
+  // tr_tree->exp_->UnNx()->Print(stderr, 0);
 }
 
 } // namespace tr
@@ -133,7 +136,7 @@ namespace absyn {
 
 tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {
+                                   err::ErrorMsg *errormsg) const {                             
   return root_->Translate(venv, tenv, level, label, errormsg);
 }
 
