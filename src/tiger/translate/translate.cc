@@ -127,6 +127,7 @@ void ProgTr::Translate() {
   tr::ExpAndTy *tr_tree = absyn_tree_->Translate(
     venv_.get(), tenv_.get(), main_level_.get(), nullptr, errormsg_.get()
   );
+
   // tr_tree->exp_->UnNx()->Print(stderr, 0);
 }
 
@@ -136,8 +137,11 @@ namespace absyn {
 
 tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {                             
-  return root_->Translate(venv, tenv, level, label, errormsg);
+                                   err::ErrorMsg *errormsg) const {     
+  std::list<bool> no_params;     
+  //直接用NamedLabel("main")会不会有什么问题？                 
+  tr::Level *main_ = tr::Level::NewLevel(level, temp::LabelFactory::NamedLabel("main"), no_params);
+  return root_->Translate(venv, tenv, main_, label, errormsg);
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
