@@ -2,6 +2,7 @@
 #define TIGER_FRAME_FRAME_H_
 
 #include <list>
+#include <vector>
 #include <memory>
 #include <string>
 
@@ -71,6 +72,8 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
+  virtual tree::Exp *ToExp(tree::Exp *framePtr) = 0;
+
   
   virtual ~Access() = default;
   
@@ -78,6 +81,16 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  Frame() {}
+
+  int local_num = 0;
+  temp::Label *name; //Label
+  std::list<Access *> *formals; //Formals
+
+  virtual Access *AllocLocal(bool escape) = 0; //allocate locals
+  static Frame *NewFrame(temp::Label *name, std::list<bool> formals);
+
 };
 
 /**
@@ -131,7 +144,7 @@ private:
   std::list<Frag*> frags_;
 };
 
-/* TODO: Put your lab5 code here */
+tree::Exp *ExternalCall(std::string s, tree::ExpList *args);
 
 } // namespace frame
 
