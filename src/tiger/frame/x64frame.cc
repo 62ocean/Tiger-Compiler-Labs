@@ -31,9 +31,14 @@ public:
 class X64Frame : public Frame {
   
 public:
+
+  std::string GetLabel() {
+    return name_->Name();
+  }
+
   Access *AllocLocal(bool escape) {
     if (escape) {
-      return new InFrameAccess(-(local_num++) * reg_manager->WordSize());
+      return new InFrameAccess(-(++local_num) * reg_manager->WordSize());
     } else {
       temp::Temp *r = temp::TempFactory::NewTemp();
       return new InRegAccess(r);
@@ -41,42 +46,41 @@ public:
   }
 
 
-};
 
-tree::Exp *ExternalCall(std::string s, tree::ExpList *args)
-{
-  return new tree::CallExp(
-    new tree::NameExp(temp::LabelFactory::NamedLabel(s)), args
-  );
-}
+};
 
 Frame *Frame::NewFrame(temp::Label *name, std::list<bool> formals) {
   Frame *frame = new X64Frame;
-  frame->name = name;
+  frame->name_ = name;
+  frame->return_addr = new InFrameAccess(0);
 
-  //初始化了frame的formals
+  //初始化frame的formals
   frame->formals = new std::list<Access *>;
-  // int num_inFrame = 0;
-  //这里的shift view实际上是错的，具体要和传参配合起来写
-  // for (bool escape : formals) {
-  //   if (escape) {
-  //     frame->formals->push_back(
-  //       new InFrameAccess((++num_inFrame) * reg_manager->WordSize())
-  //     );
-  //   } else {
-  //     frame->formals->push_back(
-  //       new InRegAccess(temp::TempFactory::NewTemp())
-  //     );
-  //   }
-  // }
-  //没有考虑return address，怎么处理？
 
-  //shift view实质上是生成了一些新的可以接触到参数的方式，具体把参数放到里面的工作是在FunDec中做的
+  //shift view实质上是生成了一些新的可以接触到参数的方式
+  temp::TempList *arg_regs = reg_manager->ArgRegs();
   int arg_num = 0;
   for (bool escape : formals) {
     if (arg_num < 6) {
       Access *arg = frame->AllocLocal(escape);
       frame->formals->push_back(arg);
+
+      //生成shift view的代码段
+      if (frame->init_args == nullptr) {
+        frame->init_args = new tree::MoveStm(
+          arg->ToExp(new tree::TempExp(reg_manager->FramePointer())), 
+          new tree::TempExp(arg_regs->NthTemp(arg_num))
+        );
+      } else {
+        frame->init_args = new tree::SeqStm(
+          frame->init_args,
+          new tree::MoveStm(
+            arg->ToExp(new tree::TempExp(reg_manager->FramePointer())), 
+            new tree::TempExp(arg_regs->NthTemp(arg_num))
+          )
+        );
+      }
+
     } else {
       frame->formals->push_back(
         new InFrameAccess((arg_num - 5) * reg_manager->WordSize())
@@ -86,6 +90,57 @@ Frame *Frame::NewFrame(temp::Label *name, std::list<bool> formals) {
   }
 
   return frame;
+}
+
+tree::Exp *ExternalCall(std::string s, tree::ExpList *args)
+{
+  return new tree::CallExp(
+    new tree::NameExp(temp::LabelFactory::NamedLabel(s)), args
+  );
+}
+
+tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm)
+{
+  // save and restore callee-saved registers
+  temp::TempList *callee_regs = reg_manager->CalleeSaves();
+
+  for (temp::Temp *reg : callee_regs->GetList()) {
+    Access *tmp = frame->AllocLocal(true);
+
+    stm = new tree::SeqStm(
+      new tree::MoveStm(
+        tmp->ToExp(new tree::TempExp(reg_manager->FramePointer())),
+        new tree::TempExp(reg)
+      ),
+      stm
+    );
+
+    stm = new tree::SeqStm(
+      stm,
+      new tree::MoveStm(
+        new tree::TempExp(reg),
+        tmp->ToExp(new tree::TempExp(reg_manager->FramePointer()))
+      )
+    );
+  }
+
+  //对参数进行shift view
+  stm = new tree::SeqStm(frame->init_args, stm);
+
+  return stm;
+}
+
+assem::InstrList *ProcEntryExit2(assem::InstrList *body)
+{
+  body->Append(new assem::OperInstr("", nullptr, reg_manager->ReturnSink(), nullptr));
+  return body;
+}
+
+assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body)
+{
+  char buf[100];
+  sprintf(buf, "PROCEDURE %s\n", temp::LabelFactory::LabelString(frame->name_).data());
+  return new assem::Proc(std::string(buf), body, "END\n");
 }
 
 } // namespace frame

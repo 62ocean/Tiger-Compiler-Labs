@@ -17,6 +17,7 @@ class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
 
+  //选择特定的某个寄存器
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
 
   /**
@@ -67,6 +68,7 @@ public:
   temp::Map *temp_map_;
 protected:
   std::vector<temp::Temp *> regs_;
+  int reg_num;
 };
 
 class Access {
@@ -85,8 +87,13 @@ public:
   Frame() {}
 
   int local_num = 0;
-  temp::Label *name; //Label
+  temp::Label *name_; //label
+  std::string GetLabel(); //label string
+
+  Access *return_addr; //return address
   std::list<Access *> *formals; //Formals
+
+  tree::Stm *init_args = nullptr;
 
   virtual Access *AllocLocal(bool escape) = 0; //allocate locals
   static Frame *NewFrame(temp::Label *name, std::list<bool> formals);
@@ -145,6 +152,10 @@ private:
 };
 
 tree::Exp *ExternalCall(std::string s, tree::ExpList *args);
+
+tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm);
+assem::InstrList *ProcEntryExit2(assem::InstrList *body);
+assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body);
 
 } // namespace frame
 

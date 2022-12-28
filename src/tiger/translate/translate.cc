@@ -128,6 +128,8 @@ void ProgTr::Translate() {
     venv_.get(), tenv_.get(), main_level_.get(), nullptr, errormsg_.get()
   );
 
+  //将main函数的fragment保存
+  frags->PushBack(new frame::ProcFrag(tr_tree->exp_->UnNx(), main_level_.get()->frame_));
   // tr_tree->exp_->UnNx()->Print(stderr, 0);
 }
 
@@ -137,11 +139,8 @@ namespace absyn {
 
 tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {     
-  std::list<bool> no_params;     
-  //直接用NamedLabel("main")会不会有什么问题？                 
-  tr::Level *main_ = tr::Level::NewLevel(level, temp::LabelFactory::NamedLabel("main"), no_params);
-  return root_->Translate(venv, tenv, main_, label, errormsg);
+                                   err::ErrorMsg *errormsg) const {         
+  return root_->Translate(venv, tenv, level, label, errormsg);
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -364,50 +363,90 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,      
                                    err::ErrorMsg *errormsg) const {
   temp::Temp *r = temp::TempFactory::NewTemp();
-  tree::Stm *ret;
+  tree::Stm *ret = nullptr;
 
-  int sz = fields_->GetList().size();
-  if (sz) {
-    //创建的record需要初始化
-    //将初始化的exp全部放入一个vector中
-    std::vector<tr::Exp *> exp_vec;
-    for (EField *efield : fields_->GetList()) {
-      tr::ExpAndTy *tr_exp = efield->exp_->Translate(venv, tenv, level, label, errormsg);
-      exp_vec.push_back(tr_exp->exp_);
-    }
-    //用最后一个exp组装move语句
-    ret = new tree::MoveStm(
-      new tree::MemExp(
-        new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(r), new tree::ConstExp((sz - 1)*reg_manager->WordSize()))),
-      exp_vec[sz - 1]->UnEx()
-    );
-    //从倒数第二个exp开始，依次向前用seq连接新的move和原来的语句
-    for (int i = sz - 2; i >= 0; --i) {
+  //初始化field的语句
+  int field_num = 0;
+  for (EField *efield : fields_->GetList()) {
+    tr::ExpAndTy *tr_exp = efield->exp_->Translate(venv, tenv, level, label, errormsg);
+    if (ret == nullptr) {
+      ret = new tree::MoveStm(
+        new tree::MemExp(
+          new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(r), new tree::ConstExp(field_num*reg_manager->WordSize()))),
+        tr_exp->exp_->UnEx()
+      );
+    } else {
       ret = new tree::SeqStm(
+        ret,
         new tree::MoveStm(
           new tree::MemExp(
-            new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(r), new tree::ConstExp(i*reg_manager->WordSize()))),
-          exp_vec[i]->UnEx()
-        ),
-        ret
+            new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(r), new tree::ConstExp(field_num*reg_manager->WordSize()))),
+          tr_exp->exp_->UnEx()
+        )
       );
     }
-    //最后添加实现malloc的语句
+
+    ++field_num;
+  }
+
+  //malloc申请空间的语句
+  //如果是一个empty record，malloc会出错吗？需要特殊判断吗？
+  if (ret == nullptr) {
+    ret = new tree::MoveStm(
+      new tree::TempExp(r), 
+      frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(field_num * reg_manager->WordSize())}))
+    );
+  } else {
     ret = new tree::SeqStm(
       new tree::MoveStm(
         new tree::TempExp(r), 
-        frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(sz * reg_manager->WordSize())}))
-      ),
-      ret
-    );
-  } else {
-    //创建的record不需要初始化
-    //直接malloc
-    ret = new tree::MoveStm(
-      new tree::TempExp(r),
-      frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(sz * reg_manager->WordSize())}))
+        frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(field_num * reg_manager->WordSize())}))
+      ), ret
     );
   }
+
+  // int sz = fields_->GetList().size();
+  // if (sz) {
+  //   //创建的record需要初始化
+  //   //将初始化的exp全部放入一个vector中
+  //   std::vector<tr::Exp *> exp_vec;
+  //   for (EField *efield : fields_->GetList()) {
+  //     tr::ExpAndTy *tr_exp = efield->exp_->Translate(venv, tenv, level, label, errormsg);
+  //     exp_vec.push_back(tr_exp->exp_);
+  //   }
+  //   //用最后一个exp组装move语句
+  //   ret = new tree::MoveStm(
+  //     new tree::MemExp(
+  //       new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(r), new tree::ConstExp((sz - 1)*reg_manager->WordSize()))),
+  //     exp_vec[sz - 1]->UnEx()
+  //   );
+  //   //从倒数第二个exp开始，依次向前用seq连接新的move和原来的语句
+  //   for (int i = sz - 2; i >= 0; --i) {
+  //     ret = new tree::SeqStm(
+  //       new tree::MoveStm(
+  //         new tree::MemExp(
+  //           new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(r), new tree::ConstExp(i*reg_manager->WordSize()))),
+  //         exp_vec[i]->UnEx()
+  //       ),
+  //       ret
+  //     );
+  //   }
+  //   //最后添加实现malloc的语句
+  //   ret = new tree::SeqStm(
+  //     new tree::MoveStm(
+  //       new tree::TempExp(r), 
+  //       frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(sz * reg_manager->WordSize())}))
+  //     ),
+  //     ret
+  //   );
+  // } else {
+  //   //创建的record不需要初始化
+  //   //直接malloc
+  //   ret = new tree::MoveStm(
+  //     new tree::TempExp(r),
+  //     frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(sz * reg_manager->WordSize())}))
+  //   );
+  // }
 
   return new tr::ExpAndTy(
     new tr::ExExp(new tree::EseqExp(ret, new tree::TempExp(r))),
@@ -419,26 +458,40 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
   type::Ty *type = nullptr;
+  tree::Stm *ret_stm = nullptr;
+  tree::Exp *ret = nullptr;
 
-  std::vector<tr::Exp *> exp_v;
   for (Exp *exp : seq_->GetList()) {
     tr::ExpAndTy *tr_exp = exp->Translate(venv, tenv, level, label, errormsg);
-    exp_v.push_back(tr_exp->exp_);
     if (exp == seq_->GetList().back()) {
       type = tr_exp->ty_->ActualTy();
+      if (ret_stm == nullptr) {
+        ret = tr_exp->exp_->UnEx();
+      } else {
+        ret = new tree::EseqExp(ret_stm, tr_exp->exp_->UnEx());
+      }
+    } else {
+      if (ret_stm == nullptr) {
+        ret_stm = tr_exp->exp_->UnNx();
+      } else {
+        ret_stm = new tree::SeqStm(ret_stm, tr_exp->exp_->UnNx());
+      }
     }
   }
 
-  int sz = exp_v.size();
-  if (sz == 1) {
-    return new tr::ExpAndTy(exp_v[0], type); //需要特意将其改成ExExp吗？
-  } else {
-    tree::EseqExp *ret = new tree::EseqExp(exp_v[sz-2]->UnNx(), exp_v[sz-1]->UnEx());
-    for (int i = sz-3; i >= 0; --i) {
-      ret = new tree::EseqExp(exp_v[i]->UnNx(), ret);
-    }
-    return new tr::ExpAndTy(new tr::ExExp(ret), type);
-  }
+  return new tr::ExpAndTy(new tr::ExExp(ret), type);
+
+  //这也太麻烦了吧！！把类似的都改一下！
+  // int sz = exp_v.size();
+  // if (sz == 1) {
+  //   return new tr::ExpAndTy(exp_v[0], type); //需要特意将其改成ExExp吗？
+  // } else {
+  //   tree::EseqExp *ret = new tree::EseqExp(exp_v[sz-2]->UnNx(), exp_v[sz-1]->UnEx());
+  //   for (int i = sz-3; i >= 0; --i) {
+  //     ret = new tree::EseqExp(exp_v[i]->UnNx(), ret);
+  //   }
+  //   return new tr::ExpAndTy(new tr::ExExp(ret), type);
+  // }
 }
 
 tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -475,7 +528,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         new tree::SeqStm(test_cx.stm_,
         new tree::SeqStm(new tree::LabelStm(t),
         new tree::SeqStm(then->exp_->UnNx(),
-        new tree::SeqStm(new tree::JumpStm(new tree::NameExp(joint), nullptr),
+        new tree::SeqStm(new tree::JumpStm(new tree::NameExp(joint), new std::vector<temp::Label *>({joint})),
         new tree::SeqStm(new tree::LabelStm(f),
         new tree::SeqStm(elsee->exp_->UnNx(),
         new tree::LabelStm(joint)))))))
@@ -488,7 +541,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         new tree::EseqExp(test_cx.stm_,
         new tree::EseqExp(new tree::LabelStm(t),
         new tree::EseqExp(new tree::MoveStm(new tree::TempExp(r), then->exp_->UnEx()),
-        new tree::EseqExp(new tree::JumpStm(new tree::NameExp(joint), nullptr), //JumpStm的第二个参数会用到吗？
+        new tree::EseqExp(new tree::JumpStm(new tree::NameExp(joint), new std::vector<temp::Label *>({joint})), 
         new tree::EseqExp(new tree::LabelStm(f),
         new tree::EseqExp(new tree::MoveStm(new tree::TempExp(r), elsee->exp_->UnEx()),
         new tree::EseqExp(new tree::LabelStm(joint),
@@ -529,7 +582,7 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     new tree::SeqStm(test_cx.stm_,
     new tree::SeqStm(new tree::LabelStm(not_done),
     new tree::SeqStm(body->exp_->UnNx(),
-    new tree::SeqStm(new tree::JumpStm(new tree::NameExp(loop), nullptr),
+    new tree::SeqStm(new tree::JumpStm(new tree::NameExp(loop), new std::vector<temp::Label *>({loop})),
     new tree::LabelStm(done))))))
   );  
   return new tr::ExpAndTy(ret, type::VoidTy::Instance());
@@ -576,7 +629,7 @@ tr::ExpAndTy *BreakExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
   return new tr::ExpAndTy(
-    new tr::NxExp(new tree::JumpStm(new tree::NameExp(label), nullptr)),
+    new tr::NxExp(new tree::JumpStm(new tree::NameExp(label), new std::vector<temp::Label *>({label}))),
     type::VoidTy::Instance()
   );
 }
@@ -588,18 +641,28 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   venv->BeginScope();
 
   //翻译Dec，修改tenv/venv，并生成初始化语句
-  std::vector<tr::Exp *> init;
+  // std::vector<tr::Exp *> init;
+  tree::Stm *init_stms = nullptr;
   for (Dec *decs : decs_->GetList()) {
-    tr::Exp *stm = decs->Translate(venv, tenv, level, label, errormsg);
-    init.push_back(stm);
-  }
+    if (typeid(*decs) == typeid(VarDec)) {
+      tr::Exp *stm = decs->Translate(venv, tenv, level, label, errormsg);
 
+      if (init_stms == nullptr) {
+        init_stms = stm->UnNx();
+      } else {
+        init_stms = new tree::SeqStm(init_stms, stm->UnNx());
+      }
+    }
+    // init.push_back(stm);
+  }
+  //翻译body
   tr::ExpAndTy *body = body_->Translate(venv, tenv, level, label, errormsg);
   //将初始化语句添加到body开头
-  tree::Exp *ret = body->exp_->UnEx();
-  for (int i = init.size() - 1; i >= 0; --i) {
-    ret = new tree::EseqExp(init[i]->UnNx(), ret);
-  }
+  tree::Exp *ret = new tree::EseqExp(init_stms, body->exp_->UnEx());
+  // tree::Exp *ret = body->exp_->UnEx();
+  // for (int i = init.size() - 1; i >= 0; --i) {
+  //   ret = new tree::EseqExp(init[i]->UnNx(), ret);
+  // }
 
   tenv->EndScope();
   venv->EndScope();
@@ -657,8 +720,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     }
     //翻译函数体
     tr::ExpAndTy *body = fundec->body_->Translate(venv, tenv, fun->level_, label, errormsg);
-    //这里应当有一系列的FunEntryExit
-
+    
     //move返回值
     tree::Stm *ret;
     if (fundec->result_) {
@@ -666,6 +728,8 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     } else {
       ret = body->exp_->UnNx();
     }
+    //shift view and save/restore callee-saved registers
+    ret = frame::ProcEntryExit1(fun->level_->frame_, ret);
 
     //将ProFrag添加到frags中
     frags->PushBack(new frame::ProcFrag(ret, fun->level_->frame_));
