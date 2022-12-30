@@ -138,8 +138,10 @@ void TempExp::Print(FILE *out, int d) const {
 void EseqExp::Print(FILE *out, int d) const {
   Indent(out, d);
   fprintf(out, "ESEQ(\n");
+  if (stm_ == nullptr) fprintf(stderr, "eseq stm is null\n");
   stm_->Print(out, d + 1);
   fprintf(out, ",\n");
+  if (exp_ == nullptr) fprintf(stderr, "eseq exp is null\n");
   exp_->Print(out, d + 1);
   fprintf(out, ")");
 }

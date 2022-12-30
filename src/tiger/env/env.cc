@@ -76,22 +76,22 @@ void ProgTr::FillBaseVEnv() {
   tr::Level *level = main_level_.get();
 
   venv_->Enter(sym::Symbol::UniqueSymbol("flush"),
-               new env::FunEntry(level, label, new type::TyList(),
+               new env::FunEntry(level, sym::Symbol::UniqueSymbol("flush"), new type::TyList(),
                                  type::VoidTy::Instance()));
 
   formals = new type::TyList(type::IntTy::Instance());
 
   venv_->Enter(
       sym::Symbol::UniqueSymbol("exit"),
-      new env::FunEntry(level, label, formals, type::VoidTy::Instance()));
+      new env::FunEntry(level, sym::Symbol::UniqueSymbol("exit"), formals, type::VoidTy::Instance()));
 
   result = type::StringTy::Instance();
 
   venv_->Enter(sym::Symbol::UniqueSymbol("chr"),
-               new env::FunEntry(level, label, formals, result));
+               new env::FunEntry(level, sym::Symbol::UniqueSymbol("chr"), formals, result));
 
   venv_->Enter(sym::Symbol::UniqueSymbol("getchar"),
-               new env::FunEntry(level, label, new type::TyList(), result));
+               new env::FunEntry(level, sym::Symbol::UniqueSymbol("getchar"), new type::TyList(), result));
 
   formals = new type::TyList(type::StringTy::Instance());
 

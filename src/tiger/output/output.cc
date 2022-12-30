@@ -10,12 +10,21 @@ extern frame::Frags *frags;
 namespace output {
 void AssemGen::GenAssem(bool need_ra) {
   frame::Frag::OutputPhase phase;
+  fprintf(stderr, "enter genassem\n");
 
   // Output proc
   phase = frame::Frag::Proc;
   fprintf(out_, ".text\n");
-  for (auto &&frag : frags->GetList())
+  for (auto &&frag : frags->GetList()) {
+    if (typeid(*frag) == typeid(frame::ProcFrag)) {
+      frame::ProcFrag *profrag = (frame::ProcFrag *)frag;
+      fprintf(stderr, "%s___________:\n", profrag->frame_->name_->Name().data());
+      profrag->body_->Print(stderr,0);
+      fprintf(stderr, "~~~~~~end~~~~~\n\n");
+    }
     frag->OutputAssem(out_, phase, need_ra);
+  }
+    
 
   // Output string
   phase = frame::Frag::String;
@@ -33,32 +42,46 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   std::unique_ptr<cg::AssemInstr> assem_instr;
   std::unique_ptr<ra::Result> allocation;
 
+  fprintf(stderr, "enter procfrag canon\n");
+
   // When generating proc fragment, do not output string assembly
   if (phase != Proc)
     return;
+  fprintf(stderr, "is a procfrag\n");
 
   TigerLog("-------====IR tree=====-----\n");
   TigerLog(body_);
+  
 
   {
     // Canonicalize
     TigerLog("-------====Canonicalize=====-----\n");
     canon::Canon canon(body_);
+    // fprintf(stderr, "after canon\n");
+
 
     // Linearize to generate canonical trees
     TigerLog("-------====Linearlize=====-----\n");
     tree::StmList *stm_linearized = canon.Linearize();
     TigerLog(stm_linearized);
+    // fprintf(stderr, "after linearlize\n");
+    // for (tree::Stm *stm : stm_linearized->GetList()) {
+    //   stm->Print(stderr, 0);
+    //   fprintf(stderr, "\n");
+    // }
+    
 
     // Group list into basic blocks
     TigerLog("------====Basic block_=====-------\n");
     canon::StmListList *stm_lists = canon.BasicBlocks();
     TigerLog(stm_lists);
+    // fprintf(stderr, "after basic block\n");
 
     // Order basic blocks into traces_
     TigerLog("-------====Trace=====-----\n");
     tree::StmList *stm_traces = canon.TraceSchedule();
     TigerLog(stm_traces);
+    // fprintf(stderr, "after trace\n");
 
     traces = canon.TransferTraces();
   }

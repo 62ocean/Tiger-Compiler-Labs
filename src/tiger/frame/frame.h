@@ -2,6 +2,7 @@
 #define TIGER_FRAME_FRAME_H_
 
 #include <list>
+#include <vector>
 #include <memory>
 #include <string>
 
@@ -16,6 +17,7 @@ class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
 
+  //选择特定的某个寄存器
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
 
   /**
@@ -66,11 +68,14 @@ public:
   temp::Map *temp_map_;
 protected:
   std::vector<temp::Temp *> regs_;
+  int reg_num;
 };
 
 class Access {
 public:
   /* TODO: Put your lab5 code here */
+  virtual tree::Exp *ToExp(tree::Exp *framePtr) = 0;
+
   
   virtual ~Access() = default;
   
@@ -78,6 +83,22 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  Frame() {}
+
+  int local_num = 0;
+  temp::Label *name_; //label
+  virtual std::string GetLabel() = 0; //label string
+
+  Access *return_addr; //return address
+  std::list<Access *> *formals; //Formals
+  int max_call_args = 0;
+
+  tree::Stm *init_args = nullptr;
+
+  virtual Access *AllocLocal(bool escape) = 0; //allocate locals
+  static Frame *NewFrame(temp::Label *name, std::list<bool> formals);
+  static Frame *NewMainFrame(temp::Label *name);
 };
 
 /**
@@ -131,7 +152,11 @@ private:
   std::list<Frag*> frags_;
 };
 
-/* TODO: Put your lab5 code here */
+tree::Exp *ExternalCall(std::string s, tree::ExpList *args);
+
+tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm);
+assem::InstrList *ProcEntryExit2(assem::InstrList *body);
+assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body);
 
 } // namespace frame
 
