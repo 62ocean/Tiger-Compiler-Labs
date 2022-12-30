@@ -131,7 +131,7 @@ tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm)
   }
 
   //对参数进行shift view
-  stm = new tree::SeqStm(frame->init_args, stm);
+  if (frame->init_args) stm = new tree::SeqStm(frame->init_args, stm);
 
   return stm;
 }
@@ -144,7 +144,7 @@ assem::InstrList *ProcEntryExit2(assem::InstrList *body)
 
 assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body)
 {
-  size_t frame_size = (frame->local_num + frame->max_call_args) * reg_manager->WordSize();
+  int frame_size = (frame->local_num + frame->max_call_args) * reg_manager->WordSize();
 
   body->Insert(body->GetList().begin(), new assem::OperInstr(
     "subq $"+std::to_string(frame_size)+",`d0",
@@ -163,7 +163,7 @@ assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body)
   ));
 
   char buf[100];
-  sprintf(buf, ".set %s_framesize: %zu\n", temp::LabelFactory::LabelString(frame->name_).data(), frame_size);
+  sprintf(buf, ".set %s_framesize: %d\n", temp::LabelFactory::LabelString(frame->name_).data(), frame_size);
   sprintf(buf, "%s%s:\n", buf, temp::LabelFactory::LabelString(frame->name_).data());
   return new assem::Proc(std::string(buf), body, "");
 }

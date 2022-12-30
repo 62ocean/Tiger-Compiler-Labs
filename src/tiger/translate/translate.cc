@@ -175,6 +175,7 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   fprintf(stderr, "translate main var ok\n");
   int i = 0;
   for (type::Field *field : ((type::RecordTy *)base->ty_)->fields_->GetList()) {
+    fprintf(stderr, "type field name: %s field name: %s\n", field->name_->Name().data(), sym_->Name().data());
     if (field->name_ == sym_) {
       type = field->ty_;
       retExp = 
@@ -198,10 +199,10 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   tree::Exp *retExp = 
   new tree::MemExp(
-    new tree::BinopExp(tree::PLUS_OP, new tree::MemExp(base->exp_->UnEx()),
+    new tree::BinopExp(tree::PLUS_OP, base->exp_->UnEx(),
       new tree::BinopExp(tree::MUL_OP, exp->exp_->UnEx(), new tree::ConstExp(reg_manager->WordSize()))));
   
-  return new tr::ExpAndTy(new tr::ExExp(retExp), base->ty_->ActualTy());
+  return new tr::ExpAndTy(new tr::ExExp(retExp), ((type::ArrayTy *)base->ty_)->ty_->ActualTy());
 }
 
 tr::ExpAndTy *VarExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -678,7 +679,7 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   fprintf(stderr, "let\n");
 
-  //翻译Dec，修改tenv/venv，并生成初始化语句
+  //翻译，修改tenv/venv，并生成初始化语句
   // std::vector<tr::Exp *> init;
   tree::Stm *init_stms = nullptr;
   for (Dec *decs : decs_->GetList()) {
@@ -697,7 +698,13 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *body = body_->Translate(venv, tenv, level, label, errormsg);
   fprintf(stderr, "body ok\n");
   //将初始化语句添加到body开头
-  tree::Exp *ret = new tree::EseqExp(init_stms, body->exp_->UnEx());
+  tree::Exp *ret;
+  if (init_stms) {
+    ret = new tree::EseqExp(init_stms, body->exp_->UnEx());
+  } else {
+    ret = body->exp_->UnEx();
+  }
+  
   fprintf(stderr, "init ok\n");
   // tree::Exp *ret = body->exp_->UnEx();
   // for (int i = init.size() - 1; i >= 0; --i) {
@@ -754,8 +761,12 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     env::FunEntry *fun = (env::FunEntry *)venv->Look(fundec->name_);
     std::list<type::Field *> flist = fundec->params_->MakeFieldList(tenv, errormsg)->GetList();
     auto ait = fun->level_->frame_->formals->begin();
+    ++ait;
     auto fit = flist.begin();
     for (; ait != fun->level_->frame_->formals->end() && fit != flist.end(); ++ait,++fit) {
+      fprintf(stderr, "%s: \n", (*fit)->name_->Name().data());
+      (*ait)->ToExp(new tree::TempExp(reg_manager->FramePointer()))->Print(stderr,0);
+      fprintf(stderr, "\n");
       venv->Enter((*fit)->name_, new env::VarEntry(new tr::Access(fun->level_, (*ait)),(*fit)->ty_));
     }
     //翻译函数体
@@ -784,7 +795,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                            tr::Level *level, temp::Label *label,
                            err::ErrorMsg *errormsg) const {
-  fprintf(stderr, "var\n");
+  fprintf(stderr, "var dec\n");
   tr::Access *access = tr::Access::AllocLocal(level, escape_);
   fprintf(stderr, "alloc ok\n");
   tr::ExpAndTy *init = init_->Translate(venv, tenv, level, label, errormsg);
