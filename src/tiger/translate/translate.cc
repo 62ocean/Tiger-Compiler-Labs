@@ -349,12 +349,19 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     ret = new tr::CxExp(trues, falses, stm);
     break;
   case EQ_OP:
-    stm = new tree::CjumpStm(tree::EQ_OP, left->exp_->UnEx(), right->exp_->UnEx(), nullptr, nullptr);
-    trues = tr::PatchList({&stm->true_label_});
-    falses = tr::PatchList({&stm->false_label_});
-    ret = new tr::CxExp(trues, falses, stm);
+    if (left->ty_->IsSameType(type::StringTy::Instance())) {
+      tree::Exp *call_ret = 
+        frame::ExternalCall("string_equal", new tree::ExpList({left->exp_->UnEx(), right->exp_->UnEx()}));
+      ret = new tr::ExExp(call_ret);
+    } else {
+      stm = new tree::CjumpStm(tree::EQ_OP, left->exp_->UnEx(), right->exp_->UnEx(), nullptr, nullptr);
+      trues = tr::PatchList({&stm->true_label_});
+      falses = tr::PatchList({&stm->false_label_});
+      ret = new tr::CxExp(trues, falses, stm);
+    }
     break;
   case NEQ_OP:
+    //怎样利用string_equal判断字符串不等？
     stm = new tree::CjumpStm(tree::NE_OP, left->exp_->UnEx(), right->exp_->UnEx(), nullptr, nullptr);
     trues = tr::PatchList({&stm->true_label_});
     falses = tr::PatchList({&stm->false_label_});
@@ -440,49 +447,6 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   fprintf(stderr, "malloc ok\n");
 
-  // int sz = fields_->GetList().size();
-  // if (sz) {
-  //   //创建的record需要初始化
-  //   //将初始化的exp全部放入一个vector中
-  //   std::vector<tr::Exp *> exp_vec;
-  //   for (EField *efield : fields_->GetList()) {
-  //     tr::ExpAndTy *tr_exp = efield->exp_->Translate(venv, tenv, level, label, errormsg);
-  //     exp_vec.push_back(tr_exp->exp_);
-  //   }
-  //   //用最后一个exp组装move语句
-  //   ret = new tree::MoveStm(
-  //     new tree::MemExp(
-  //       new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(r), new tree::ConstExp((sz - 1)*reg_manager->WordSize()))),
-  //     exp_vec[sz - 1]->UnEx()
-  //   );
-  //   //从倒数第二个exp开始，依次向前用seq连接新的move和原来的语句
-  //   for (int i = sz - 2; i >= 0; --i) {
-  //     ret = new tree::SeqStm(
-  //       new tree::MoveStm(
-  //         new tree::MemExp(
-  //           new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(r), new tree::ConstExp(i*reg_manager->WordSize()))),
-  //         exp_vec[i]->UnEx()
-  //       ),
-  //       ret
-  //     );
-  //   }
-  //   //最后添加实现malloc的语句
-  //   ret = new tree::SeqStm(
-  //     new tree::MoveStm(
-  //       new tree::TempExp(r), 
-  //       frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(sz * reg_manager->WordSize())}))
-  //     ),
-  //     ret
-  //   );
-  // } else {
-  //   //创建的record不需要初始化
-  //   //直接malloc
-  //   ret = new tree::MoveStm(
-  //     new tree::TempExp(r),
-  //     frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(sz * reg_manager->WordSize())}))
-  //   );
-  // }
-
   return new tr::ExpAndTy(
     new tr::ExExp(new tree::EseqExp(ret, new tree::TempExp(r))),
     tenv->Look(typ_)->ActualTy()
@@ -517,18 +481,6 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
 
   return new tr::ExpAndTy(new tr::ExExp(ret), type);
-
-  //这也太麻烦了吧！！把类似的都改一下！
-  // int sz = exp_v.size();
-  // if (sz == 1) {
-  //   return new tr::ExpAndTy(exp_v[0], type); //需要特意将其改成ExExp吗？
-  // } else {
-  //   tree::EseqExp *ret = new tree::EseqExp(exp_v[sz-2]->UnNx(), exp_v[sz-1]->UnEx());
-  //   for (int i = sz-3; i >= 0; --i) {
-  //     ret = new tree::EseqExp(exp_v[i]->UnNx(), ret);
-  //   }
-  //   return new tr::ExpAndTy(new tr::ExExp(ret), type);
-  // }
 }
 
 tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
