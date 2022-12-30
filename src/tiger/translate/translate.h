@@ -68,7 +68,12 @@ public:
     : absyn_tree_(std::move(absyn_tree)), errormsg_(std::move(errormsg)),
       tenv_(std::make_unique<env::TEnv>()),
       venv_(std::make_unique<env::VEnv>()),
-      main_level_(std::make_unique<Level>()) {}
+      main_level_(std::make_unique<Level>()) {
+
+    main_level_->frame_ = frame::Frame::NewMainFrame(temp::LabelFactory::NamedLabel("tigermain"));
+    main_level_->parent_ = nullptr;
+
+  }
 
   /**
    * Translate IR tree

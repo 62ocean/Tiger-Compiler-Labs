@@ -88,16 +88,17 @@ public:
 
   int local_num = 0;
   temp::Label *name_; //label
-  std::string GetLabel(); //label string
+  virtual std::string GetLabel() = 0; //label string
 
   Access *return_addr; //return address
   std::list<Access *> *formals; //Formals
+  int max_call_args = 0;
 
   tree::Stm *init_args = nullptr;
 
   virtual Access *AllocLocal(bool escape) = 0; //allocate locals
   static Frame *NewFrame(temp::Label *name, std::list<bool> formals);
-
+  static Frame *NewMainFrame(temp::Label *name);
 };
 
 /**

@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
       esc_finder.FindEscape();
       absyn_tree = esc_finder.TransferAbsynTree();
     }
+    fprintf(stderr, "after escape\n");
 
     {
       // Lab 5: translate IR tree
@@ -59,6 +60,14 @@ int main(int argc, char **argv) {
       prog_tr.Translate();
       errormsg = prog_tr.TransferErrormsg();
     }
+    fprintf(stderr, "after translate\n");
+    // for (frame::Frag *frag : frags->GetList()) {
+    //   if (typeid(*frag) == typeid(frame::ProcFrag)) {
+    //     frame::ProcFrag *profrag = (frame::ProcFrag *)frag;
+    //     profrag->body_->Print(stderr,0);
+    //   }
+    //   fprintf(stderr, "~~~~~~end~~~~~\n\n");
+    // }
 
     if (errormsg->AnyErrors())
       return 1; // Don't continue if error occurrs
@@ -67,6 +76,7 @@ int main(int argc, char **argv) {
   {
     // Output assembly
     output::AssemGen assem_gen(fname);
+    fprintf(stderr, "after init assemgen\n");
     assem_gen.GenAssem(false);
   }
 

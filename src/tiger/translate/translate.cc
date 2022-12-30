@@ -146,18 +146,21 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
+  fprintf(stderr, "simple var\n");
   env::VarEntry *var = (env::VarEntry *)venv->Look(sym_);     
   type::Ty *type = var->ty_;
   tree::Exp *retExp = new tree::TempExp(reg_manager->FramePointer());
   
   tr::Level *lv = level;
   while (var->access_->level_ != lv) {
+    fprintf(stderr, "static link exit\n");
     frame::Access *sl = lv->frame_->formals->front();
     retExp = sl->ToExp(retExp);
     lv = lv->parent_;
   }
+  fprintf(stderr, "after static link\n");
   retExp = var->access_->access_->ToExp(retExp);
-
+  fprintf(stderr, "simple var ok\n");
   return new tr::ExpAndTy(new tr::ExExp(retExp), type->ActualTy());
 }
 
@@ -167,19 +170,22 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   type::Ty *type;
   tree::Exp *retExp;
 
+  fprintf(stderr, "fieldvar\n");
   tr::ExpAndTy *base = var_->Translate(venv, tenv, level, label, errormsg);
+  fprintf(stderr, "translate main var ok\n");
   int i = 0;
   for (type::Field *field : ((type::RecordTy *)base->ty_)->fields_->GetList()) {
     if (field->name_ == sym_) {
       type = field->ty_;
       retExp = 
       new tree::MemExp(
-        new tree::BinopExp(tree::PLUS_OP, new tree::MemExp(base->exp_->UnEx()),
+        new tree::BinopExp(tree::PLUS_OP, base->exp_->UnEx(),
           new tree::ConstExp(i * reg_manager->WordSize())));
       break;
     } 
     ++i;
   }
+  fprintf(stderr, "translate field ok\n");
 
   return new tr::ExpAndTy(new tr::ExExp(retExp), type->ActualTy());
 }
@@ -233,27 +239,52 @@ tr::ExpAndTy *StringExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                  tr::Level *level, temp::Label *label,
                                  err::ErrorMsg *errormsg) const {
-  env::FunEntry *func = (env::FunEntry *)venv->Look(func_);
+  fprintf(stderr, "enter callexp\n");
+  env::FunEntry *func = (env::FunEntry *)venv->Look(sym::Symbol::UniqueSymbol(func_->Name()));
+  func->label_ = func_;
 
-  //建立static link
-  tree::Exp *sl = new tree::TempExp(reg_manager->FramePointer());
-  tr::Level *lv = level;
-  while (lv != func->level_->parent_) {
-    sl = lv->frame_->formals->front()->ToExp(sl);
-    lv = lv->parent_;
-  }
-
-  //翻译arg
+  fprintf(stderr, "find func %s\n",func->label_->Name().data());
   tree::ExpList *args = new tree::ExpList;
-  args->Append(sl);
-  for (Exp *arg : args_->GetList()) {
-    tr::ExpAndTy *x = arg->Translate(venv, tenv, level, label, errormsg);
-    args->Append(x->exp_->UnEx());
-  }
+  int arg_num = 0;
+  tr::Exp *ret = nullptr;
 
-  tr::Exp *ret = new tr::ExExp(
-    new tree::CallExp(new tree::NameExp(func_), args)
-  );
+  std::string func_name = func->label_->Name();
+  if (func_name == "flush" || func_name == "exit" || func_name == "chr" ||
+      func_name == "print" || func_name == "printi" || func_name == "ord" ||
+      func_name == "size" || func_name == "concat" || func_name == "substring") {
+    //如该函数是external call
+    fprintf(stderr, "external call\n");
+    //翻译arg
+    for (Exp *arg : args_->GetList()) {
+      ++arg_num;
+      tr::ExpAndTy *x = arg->Translate(venv, tenv, level, label, errormsg);
+      args->Append(x->exp_->UnEx());
+    }
+    ret = new tr::ExExp(frame::ExternalCall(func_name, args));
+
+  } else {
+    //如该函数不是external call
+    fprintf(stderr, "not external call\n");
+    //建立static link
+    tree::Exp *sl = new tree::TempExp(reg_manager->FramePointer());
+    tr::Level *lv = level;
+    while (lv != func->level_->parent_) {
+      sl = lv->frame_->formals->front()->ToExp(sl);
+      lv = lv->parent_;
+    }
+    args->Append(sl); ++arg_num;
+    fprintf(stderr, "set up static link ok\n");
+    //翻译arg
+    for (Exp *arg : args_->GetList()) {
+      ++arg_num;
+      tr::ExpAndTy *x = arg->Translate(venv, tenv, level, label, errormsg);
+      args->Append(x->exp_->UnEx());
+    }
+    ret = new tr::ExExp(new tree::CallExp(new tree::NameExp(func_), args));
+  }
+  level->frame_->max_call_args = std::max(arg_num - 6, level->frame_->max_call_args);
+  fprintf(stderr, "call ok\n");
+
   return new tr::ExpAndTy(ret, func->result_->ActualTy());
 }
 
@@ -369,6 +400,7 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   int field_num = 0;
   for (EField *efield : fields_->GetList()) {
     tr::ExpAndTy *tr_exp = efield->exp_->Translate(venv, tenv, level, label, errormsg);
+    fprintf(stderr, "translate efield ok\n");
     if (ret == nullptr) {
       ret = new tree::MoveStm(
         new tree::MemExp(
@@ -388,22 +420,24 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
     ++field_num;
   }
+  fprintf(stderr, "init field ok\n");
 
   //malloc申请空间的语句
   //如果是一个empty record，malloc会出错吗？需要特殊判断吗？
   if (ret == nullptr) {
     ret = new tree::MoveStm(
       new tree::TempExp(r), 
-      frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(field_num * reg_manager->WordSize())}))
+      frame::ExternalCall("alloc_record", new tree::ExpList({new tree::ConstExp(field_num * reg_manager->WordSize())}))
     );
   } else {
     ret = new tree::SeqStm(
       new tree::MoveStm(
         new tree::TempExp(r), 
-        frame::ExternalCall("malloc", new tree::ExpList({new tree::ConstExp(field_num * reg_manager->WordSize())}))
+        frame::ExternalCall("alloc_record", new tree::ExpList({new tree::ConstExp(field_num * reg_manager->WordSize())}))
       ), ret
     );
   }
+  fprintf(stderr, "malloc ok\n");
 
   // int sz = fields_->GetList().size();
   // if (sz) {
@@ -463,6 +497,7 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   for (Exp *exp : seq_->GetList()) {
     tr::ExpAndTy *tr_exp = exp->Translate(venv, tenv, level, label, errormsg);
+    fprintf(stderr, "translate one seqexp ok\n");
     if (exp == seq_->GetList().back()) {
       type = tr_exp->ty_->ActualTy();
       if (ret_stm == nullptr) {
@@ -477,6 +512,7 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         ret_stm = new tree::SeqStm(ret_stm, tr_exp->exp_->UnNx());
       }
     }
+    fprintf(stderr, "connect seqexp ok\n");
   }
 
   return new tr::ExpAndTy(new tr::ExExp(ret), type);
@@ -640,13 +676,14 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tenv->BeginScope();
   venv->BeginScope();
 
+  fprintf(stderr, "let\n");
+
   //翻译Dec，修改tenv/venv，并生成初始化语句
   // std::vector<tr::Exp *> init;
   tree::Stm *init_stms = nullptr;
   for (Dec *decs : decs_->GetList()) {
+    tr::Exp *stm = decs->Translate(venv, tenv, level, label, errormsg);
     if (typeid(*decs) == typeid(VarDec)) {
-      tr::Exp *stm = decs->Translate(venv, tenv, level, label, errormsg);
-
       if (init_stms == nullptr) {
         init_stms = stm->UnNx();
       } else {
@@ -655,10 +692,13 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     }
     // init.push_back(stm);
   }
+  fprintf(stderr, "dec ok\n");
   //翻译body
   tr::ExpAndTy *body = body_->Translate(venv, tenv, level, label, errormsg);
+  fprintf(stderr, "body ok\n");
   //将初始化语句添加到body开头
   tree::Exp *ret = new tree::EseqExp(init_stms, body->exp_->UnEx());
+  fprintf(stderr, "init ok\n");
   // tree::Exp *ret = body->exp_->UnEx();
   // for (int i = init.size() - 1; i >= 0; --i) {
   //   ret = new tree::EseqExp(init[i]->UnNx(), ret);
@@ -744,9 +784,12 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                            tr::Level *level, temp::Label *label,
                            err::ErrorMsg *errormsg) const {
+  fprintf(stderr, "var\n");
   tr::Access *access = tr::Access::AllocLocal(level, escape_);
-  venv->Enter(var_, new env::VarEntry(access, tenv->Look(typ_)));
+  fprintf(stderr, "alloc ok\n");
   tr::ExpAndTy *init = init_->Translate(venv, tenv, level, label, errormsg);
+  venv->Enter(var_, new env::VarEntry(access, init->ty_));
+  fprintf(stderr, "translate init ok\n");
   tree::MoveStm *ret = new tree::MoveStm(
     access->access_->ToExp(new tree::TempExp(reg_manager->FramePointer())), 
     init->exp_->UnEx()
@@ -764,6 +807,7 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     type::Ty *ty = tenv->Look(name_ty->name_);
     ((type::NameTy *)ty)->ty_ = name_ty->ty_->Translate(tenv, errormsg);
   }
+  fprintf(stderr, "type ok\n");
   return new tr::ExExp(new tree::ConstExp(0));
 }
 

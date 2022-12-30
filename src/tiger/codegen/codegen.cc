@@ -18,7 +18,7 @@ namespace cg {
 void CodeGen::Codegen() {
   auto *list = new assem::InstrList();
   for (tree::Stm *stm : traces_->GetStmList()->GetList()) {
-    stm->Munch(*list, fs_);
+    stm->Munch(*list, frame_->GetLabel()+"_framesize");
   }
   assem_instr_ = std::make_unique<AssemInstr>(frame::ProcEntryExit2(list));
 }
@@ -26,7 +26,7 @@ void CodeGen::Codegen() {
 void AssemInstr::Print(FILE *out, temp::Map *map) const {
   for (auto instr : instr_list_->GetList())
     instr->Print(out, map);
-  fprintf(out, "\n");
+  // fprintf(out, "\n");
 }
 } // namespace cg
 
@@ -128,21 +128,39 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
       if (dst_binop->op_ == tree::PLUS_OP && typeid(*dst_binop->right_) == typeid(ConstExp)) {
         //move(mem(+(r,const)),const)
         temp::Temp *dst_binop_reg = dst_binop->left_->Munch(instr_list, fs);
-        instr_list.Append(new assem::OperInstr(
-          "movq $"+std::to_string(((ConstExp *)src_)->consti_)+","+std::to_string(((ConstExp *)dst_binop->right_)->consti_)+"(`d0)",
-          new temp::TempList({dst_binop_reg}),
-          nullptr, nullptr
-        ));
+        if (dst_binop_reg == reg_manager->FramePointer()) {
+          instr_list.Append(new assem::OperInstr(
+            "movq $"+std::to_string(((ConstExp *)src_)->consti_)+","+std::to_string(((ConstExp *)dst_binop->right_)->consti_)+"+"+std::string(fs.data())+"(`d0)",
+            new temp::TempList({dst_binop_reg}),
+            nullptr, nullptr
+          ));
+        } else {
+          instr_list.Append(new assem::OperInstr(
+            "movq $"+std::to_string(((ConstExp *)src_)->consti_)+","+std::to_string(((ConstExp *)dst_binop->right_)->consti_)+"(`d0)",
+            new temp::TempList({dst_binop_reg}),
+            nullptr, nullptr
+          ));
+        }
+        
         return;
       }
       if (dst_binop->op_ == tree::PLUS_OP && typeid(*dst_binop->left_) == typeid(ConstExp)) {
         //move(mem(+(const,r)),const)
         temp::Temp *dst_binop_reg = dst_binop->right_->Munch(instr_list, fs);
-        instr_list.Append(new assem::OperInstr(
-          "movq $"+std::to_string(((ConstExp *)src_)->consti_)+","+std::to_string(((ConstExp *)dst_binop->left_)->consti_)+"(`d0)",
-          new temp::TempList({dst_binop_reg}),
-          nullptr, nullptr
-        ));
+        if (dst_binop_reg == reg_manager->FramePointer()) {
+          instr_list.Append(new assem::OperInstr(
+            "movq $"+std::to_string(((ConstExp *)src_)->consti_)+","+std::to_string(((ConstExp *)dst_binop->left_)->consti_)+"+"+std::string(fs.data())+"(`d0)",
+            new temp::TempList({reg_manager->StackPointer()}),
+            nullptr, nullptr
+          ));
+        } else {
+          instr_list.Append(new assem::OperInstr(
+            "movq $"+std::to_string(((ConstExp *)src_)->consti_)+","+std::to_string(((ConstExp *)dst_binop->left_)->consti_)+"(`d0)",
+            new temp::TempList({dst_binop_reg}),
+            nullptr, nullptr
+          ));
+        }
+        
         return;
       }
     }
@@ -163,24 +181,44 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
         //move(r,mem(+(r,const)))
         temp::Temp *dst_reg = dst_->Munch(instr_list, fs);
         temp::Temp *src_binop_reg = src_binop->left_->Munch(instr_list, fs);
-        instr_list.Append(new assem::OperInstr(
-          "movq "+std::to_string(((ConstExp *)src_binop->right_)->consti_)+"(`s0),`d0",
-          new temp::TempList({dst_reg}),
-          new temp::TempList({src_binop_reg}),
-          nullptr
-        ));
+        if (src_binop_reg == reg_manager->FramePointer()) {
+          instr_list.Append(new assem::OperInstr(
+            "movq "+std::to_string(((ConstExp *)src_binop->right_)->consti_)+"+"+std::string(fs.data())+"(`s0),`d0",
+            new temp::TempList({dst_reg}),
+            new temp::TempList({reg_manager->StackPointer()}),
+            nullptr
+          ));  
+        } else {
+          instr_list.Append(new assem::OperInstr(
+            "movq "+std::to_string(((ConstExp *)src_binop->right_)->consti_)+"(`s0),`d0",
+            new temp::TempList({dst_reg}),
+            new temp::TempList({src_binop_reg}),
+            nullptr
+          ));
+        }
+        
         return;
       }
       if (src_binop->op_ == tree::PLUS_OP && typeid(*src_binop->left_) == typeid(ConstExp)) {
         //move(r,mem(+(const,r)))
         temp::Temp *dst_reg = dst_->Munch(instr_list, fs);
         temp::Temp *src_binop_reg = src_binop->right_->Munch(instr_list, fs);
-        instr_list.Append(new assem::OperInstr(
-          "movq "+std::to_string(((ConstExp *)src_binop->left_)->consti_)+"(`s0),`d0",
-          new temp::TempList({dst_reg}),
-          new temp::TempList({src_binop_reg}),
-          nullptr
-        ));
+        if (src_binop_reg == reg_manager->FramePointer()) {
+          instr_list.Append(new assem::OperInstr(
+            "movq "+std::to_string(((ConstExp *)src_binop->left_)->consti_)+"+"+std::string(fs.data())+"(`s0),`d0",
+            new temp::TempList({dst_reg}),
+            new temp::TempList({reg_manager->StackPointer()}),
+            nullptr
+          ));
+        } else {
+          instr_list.Append(new assem::OperInstr(
+            "movq "+std::to_string(((ConstExp *)src_binop->left_)->consti_)+"(`s0),`d0",
+            new temp::TempList({dst_reg}),
+            new temp::TempList({src_binop_reg}),
+            nullptr
+          ));
+        }
+        
         return;
       }
     }
@@ -193,24 +231,44 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
         //move(mem(+(r,const)),r)
         temp::Temp *src_reg = src_->Munch(instr_list, fs);
         temp::Temp *dst_binop_reg = dst_binop->left_->Munch(instr_list, fs);
-        instr_list.Append(new assem::OperInstr(
-          "movq `s0,"+std::to_string(((ConstExp *)dst_binop->right_)->consti_)+"(`d0)",
-          new temp::TempList({dst_binop_reg}),
-          new temp::TempList({src_reg}),
-          nullptr
-        ));
+        if (dst_binop_reg == reg_manager->FramePointer()) {
+          instr_list.Append(new assem::OperInstr(
+            "movq `s0,"+std::to_string(((ConstExp *)dst_binop->right_)->consti_)+"+"+std::string(fs.data())+"(`d0)",
+            new temp::TempList({reg_manager->StackPointer()}),
+            new temp::TempList({src_reg}),
+            nullptr
+          ));
+        } else {
+          instr_list.Append(new assem::OperInstr(
+            "movq `s0,"+std::to_string(((ConstExp *)dst_binop->right_)->consti_)+"(`d0)",
+            new temp::TempList({dst_binop_reg}),
+            new temp::TempList({src_reg}),
+            nullptr
+          ));
+        }
+        
         return;
       }
       if (dst_binop->op_ == tree::PLUS_OP && typeid(*dst_binop->right_) == typeid(ConstExp)) {
         //move(mem(+(const,r)),r)
         temp::Temp *src_reg = src_->Munch(instr_list, fs);
         temp::Temp *dst_binop_reg = dst_binop->right_->Munch(instr_list, fs);
-        instr_list.Append(new assem::OperInstr(
-          "movq `s0,"+std::to_string(((ConstExp *)dst_binop->left_)->consti_)+"(`d0)",
-          new temp::TempList({dst_binop_reg}),
-          new temp::TempList({src_reg}),
-          nullptr
-        ));
+        if (dst_binop_reg == reg_manager->FramePointer()) {
+          instr_list.Append(new assem::OperInstr(
+            "movq `s0,"+std::to_string(((ConstExp *)dst_binop->left_)->consti_)+"+"+std::string(fs.data())+"(`d0)",
+            new temp::TempList({reg_manager->StackPointer()}),
+            new temp::TempList({src_reg}),
+            nullptr
+          ));
+        } else {
+          instr_list.Append(new assem::OperInstr(
+            "movq `s0,"+std::to_string(((ConstExp *)dst_binop->left_)->consti_)+"(`d0)",
+            new temp::TempList({dst_binop_reg}),
+            new temp::TempList({src_reg}),
+            nullptr
+          ));  
+        }
+        
         return;
       }
     }
@@ -314,12 +372,22 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
           //+(mem(+(r,const)),r)
           temp::Temp *left_binop_reg = left_binop->left_->Munch(instr_list, fs);
           temp::Temp *right_reg = right_->Munch(instr_list, fs);
-          instr_list.Append(new assem::OperInstr(
-            "addq "+std::to_string(((ConstExp *)left_binop->right_)->consti_)+"(`s1),`d0",
-            new temp::TempList({right_reg}),
-            new temp::TempList({right_reg, left_binop_reg}),
-            nullptr
-          ));
+          if (left_binop_reg == reg_manager->FramePointer()) {
+            instr_list.Append(new assem::OperInstr(
+              "addq "+std::to_string(((ConstExp *)left_binop->right_)->consti_)+"+"+std::string(fs.data())+"(`s1),`d0",
+              new temp::TempList({right_reg}),
+              new temp::TempList({right_reg, reg_manager->StackPointer()}),
+              nullptr
+            ));
+          } else {
+            instr_list.Append(new assem::OperInstr(
+              "addq "+std::to_string(((ConstExp *)left_binop->right_)->consti_)+"(`s1),`d0",
+              new temp::TempList({right_reg}),
+              new temp::TempList({right_reg, left_binop_reg}),
+              nullptr
+            ));
+          }
+          
           return right_reg;
         }
       }
@@ -332,12 +400,22 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
           //+(r,mem(+(r,const)))
           temp::Temp *right_binop_reg = right_binop->left_->Munch(instr_list, fs);
           temp::Temp *left_reg = left_->Munch(instr_list, fs);
-          instr_list.Append(new assem::OperInstr(
-            "addq "+std::to_string(((ConstExp *)right_binop->right_)->consti_)+"(`s1),`d0",
-            new temp::TempList({left_reg}),
-            new temp::TempList({left_reg, right_binop_reg}),
-            nullptr
-          ));
+          if (right_binop_reg == reg_manager->FramePointer()) {
+            instr_list.Append(new assem::OperInstr(
+              "addq "+std::to_string(((ConstExp *)right_binop->right_)->consti_)+"+"+std::string(fs.data())+"(`s1),`d0",
+              new temp::TempList({left_reg}),
+              new temp::TempList({left_reg, reg_manager->StackPointer()}),
+              nullptr
+            ));
+          } else {
+            instr_list.Append(new assem::OperInstr(
+              "addq "+std::to_string(((ConstExp *)right_binop->right_)->consti_)+"(`s1),`d0",
+              new temp::TempList({left_reg}),
+              new temp::TempList({left_reg, right_binop_reg}),
+              nullptr
+            ));
+          }
+          
           return left_reg;
         }
       }
@@ -562,31 +640,53 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *r = temp::TempFactory::NewTemp();
   if (typeid(*exp_) == typeid(BinopExp)) {
     BinopExp *binop = static_cast<BinopExp *>(exp_);
-    if (binop->op_ == PLUS_OP && typeid(binop->right_) == typeid(ConstExp)) {
+    if (binop->op_ == PLUS_OP && typeid(*binop->right_) == typeid(ConstExp)) {
       //mem(+(r,const))
+      // fprintf(stderr, "mem(+(r,const))\n");
       temp::Temp *reg = binop->left_->Munch(instr_list, fs);
-      instr_list.Append(new assem::OperInstr(
-        "movq "+std::to_string(((ConstExp *)binop->right_)->consti_)+"(`s0),`d0",
-        new temp::TempList({r}),
-        new temp::TempList({reg}),
-        nullptr
-      ));
+      if (reg == reg_manager->FramePointer()) {
+        instr_list.Append(new assem::OperInstr(
+          "movq "+std::to_string(((ConstExp *)binop->right_)->consti_)+"+"+std::string(fs.data())+"(`s0),`d0",
+          new temp::TempList({r}),
+          new temp::TempList({reg_manager->StackPointer()}),
+          nullptr
+        ));
+      } else {
+          instr_list.Append(new assem::OperInstr(
+          "movq "+std::to_string(((ConstExp *)binop->right_)->consti_)+"(`s0),`d0",
+          new temp::TempList({r}),
+          new temp::TempList({reg}),
+          nullptr
+        ));
+      }
+      
       return r;
     }
-    if (binop->op_ == PLUS_OP && typeid(binop->left_) == typeid(ConstExp)) {
+    if (binop->op_ == PLUS_OP && typeid(*binop->left_) == typeid(ConstExp)) {
       //mem(+(const,r))
+      // fprintf(stderr, "mem(+(const,r))\n");
       temp::Temp *reg = binop->right_->Munch(instr_list, fs);
-      instr_list.Append(new assem::OperInstr(
-        "movq "+std::to_string(((ConstExp *)binop->left_)->consti_)+"(`s0),`d0",
-        new temp::TempList({r}),
-        new temp::TempList({reg}),
-        nullptr
-      ));
+      if (reg == reg_manager->FramePointer()) {
+        instr_list.Append(new assem::OperInstr(
+          "movq "+std::to_string(((ConstExp *)binop->left_)->consti_)+"+"+std::string(fs.data())+"(`s0),`d0",
+          new temp::TempList({r}),
+          new temp::TempList({reg_manager->StackPointer()}),
+          nullptr
+        ));
+      } else {
+        instr_list.Append(new assem::OperInstr(
+          "movq "+std::to_string(((ConstExp *)binop->left_)->consti_)+"(`s0),`d0",
+          new temp::TempList({r}),
+          new temp::TempList({reg}),
+          nullptr
+        ));
+      }
       return r;
     }
   }
   if (typeid(*exp_) == typeid(ConstExp)) {
     //mem(const)
+    fprintf(stderr, "mem(const)\n");
     instr_list.Append(new assem::OperInstr(
       "movq "+std::to_string(((ConstExp *)exp_)->consti_)+",`d0",
       new temp::TempList({r}),
@@ -595,11 +695,13 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     return r;
   }
   //mem(r)
+  fprintf(stderr, "mem(r)\n");
   temp::Temp *reg = exp_->Munch(instr_list, fs);
-  instr_list.Append(new assem::MoveInstr(
-    "movq `s0,`d0",
+  instr_list.Append(new assem::OperInstr(
+    "movq (`s0),`d0",
     new temp::TempList({r}),
-    new temp::TempList({reg})
+    new temp::TempList({reg}),
+    nullptr
   ));
   return r;
 }
@@ -633,6 +735,9 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
+  fprintf(stderr, "call exp:::::\n");
+  this->Print(stderr,0);
+  fprintf(stderr, "\n\n");
   //translate生成的所有CallExp的exp_都是NameExp
   NameExp *fun = static_cast<NameExp *>(fun_);
   temp::TempList *list = args_->MunchArgs(instr_list, fs);
@@ -659,6 +764,9 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
   temp::TempList *arg_temps = reg_manager->ArgRegs();
   temp::TempList *list = new temp::TempList;
   for (Exp *exp : exp_list_) {
+    fprintf(stderr, "call arg:::::\n");
+    exp->Print(stderr,0);
+    fprintf(stderr, "\n\n");
     temp::Temp *r = exp->Munch(instr_list, fs);
     if (i < 6) {
       instr_list.Append(new assem::MoveInstr(

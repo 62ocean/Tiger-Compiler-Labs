@@ -35,10 +35,15 @@ private:
 public:
   X64RegManager() {
     reg_num = 16;
+
+    std::string reg_name[16] = {"%rax","%rbx","%rcx","%rdx","%rsi","%rdi","%rbp","%rsp","%r8","%r9","%r10","%r11","%r12","%r13","r14","r15"};
+
     for (int i = 0; i < 16; ++i) {
       temp::Temp *t = temp::TempFactory::NewTemp();
       regs_.push_back(t);
+      temp_map_->Enter(t, new std::string(reg_name[i]));
     }
+
   }
 
   int WordSize() {return 8;}

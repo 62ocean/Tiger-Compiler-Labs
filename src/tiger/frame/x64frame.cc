@@ -49,6 +49,12 @@ public:
 
 };
 
+Frame *Frame::NewMainFrame(temp::Label *name) {
+  Frame *frame = new X64Frame;
+  frame->name_ = name;
+  return frame;
+}
+
 Frame *Frame::NewFrame(temp::Label *name, std::list<bool> formals) {
   Frame *frame = new X64Frame;
   frame->name_ = name;
@@ -138,9 +144,28 @@ assem::InstrList *ProcEntryExit2(assem::InstrList *body)
 
 assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body)
 {
+  size_t frame_size = (frame->local_num + frame->max_call_args) * reg_manager->WordSize();
+
+  body->Insert(body->GetList().begin(), new assem::OperInstr(
+    "subq $"+std::to_string(frame_size)+",`d0",
+    new temp::TempList({reg_manager->StackPointer()}),
+    nullptr, nullptr
+  ));
+  body->Append(new assem::OperInstr(
+    "addq $"+std::to_string(frame_size)+",`d0",
+    new temp::TempList({reg_manager->StackPointer()}),
+    nullptr, nullptr
+  ));
+  body->Append(new assem::OperInstr(
+    "retq",
+    new temp::TempList({reg_manager->StackPointer()}),
+    nullptr, nullptr
+  ));
+
   char buf[100];
-  sprintf(buf, "PROCEDURE %s\n", temp::LabelFactory::LabelString(frame->name_).data());
-  return new assem::Proc(std::string(buf), body, "END\n");
+  sprintf(buf, ".set %s_framesize: %zu\n", temp::LabelFactory::LabelString(frame->name_).data(), frame_size);
+  sprintf(buf, "%s%s:\n", buf, temp::LabelFactory::LabelString(frame->name_).data());
+  return new assem::Proc(std::string(buf), body, "");
 }
 
 } // namespace frame
