@@ -59,11 +59,17 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     canon::Canon canon(body_);
     // fprintf(stderr, "after canon\n");
 
+
     // Linearize to generate canonical trees
     TigerLog("-------====Linearlize=====-----\n");
     tree::StmList *stm_linearized = canon.Linearize();
     TigerLog(stm_linearized);
     // fprintf(stderr, "after linearlize\n");
+    // for (tree::Stm *stm : stm_linearized->GetList()) {
+    //   stm->Print(stderr, 0);
+    //   fprintf(stderr, "\n");
+    // }
+    
 
     // Group list into basic blocks
     TigerLog("------====Basic block_=====-------\n");

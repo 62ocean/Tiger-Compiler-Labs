@@ -252,7 +252,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   std::string func_name = func->label_->Name();
   if (func_name == "flush" || func_name == "exit" || func_name == "chr" ||
       func_name == "print" || func_name == "printi" || func_name == "ord" ||
-      func_name == "size" || func_name == "concat" || func_name == "substring") {
+      func_name == "size" || func_name == "concat" || func_name == "substring" || func_name == "getchar") {
     //如该函数是external call
     fprintf(stderr, "external call\n");
     //翻译arg
@@ -641,18 +641,19 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   temp::Label *not_done = temp::LabelFactory::NewLabel();
   temp::Label *done = temp::LabelFactory::NewLabel();
 
-  tr::ExpAndTy *body = body_->Translate(venv, tenv, level, done, errormsg);
+  tr::ExpAndTy *body1 = body_->Translate(venv, tenv, level, done, errormsg);
+  tr::ExpAndTy *body2 = body_->Translate(venv, tenv, level, done, errormsg);
 
   tree::Exp *var = access->access_->ToExp(new tree::TempExp(reg_manager->FramePointer()));
   tr::Exp *ret = new tr::NxExp(
     new tree::SeqStm(new tree::MoveStm(var, lo->exp_->UnEx()),
     new tree::SeqStm(new tree::CjumpStm(tree::GT_OP, var, hi->exp_->UnEx(), done, not_done),
     new tree::SeqStm(new tree::LabelStm(not_done),
-    new tree::SeqStm(body->exp_->UnNx(),
+    new tree::SeqStm(body1->exp_->UnNx(),
     new tree::SeqStm(new tree::CjumpStm(tree::EQ_OP, var, hi->exp_->UnEx(), done, loop),
     new tree::SeqStm(new tree::LabelStm(loop),
     new tree::SeqStm(new tree::MoveStm(var, new tree::BinopExp(tree::PLUS_OP, var, new tree::ConstExp(1))),
-    new tree::SeqStm(body->exp_->UnNx(),
+    new tree::SeqStm(body2->exp_->UnNx(),
     new tree::SeqStm(new tree::CjumpStm(tree::LT_OP, var, hi->exp_->UnEx(), loop, done),
     new tree::LabelStm(done))))))))))
   );
