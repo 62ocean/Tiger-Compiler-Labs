@@ -593,6 +593,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   temp::Label *not_done = temp::LabelFactory::NewLabel();
   temp::Label *done = temp::LabelFactory::NewLabel();
 
+  //body1和body2的label不能相同，否则生成的汇编语言不正确（相同的label在不同地方出现两次）=> 翻译两次
   tr::ExpAndTy *body1 = body_->Translate(venv, tenv, level, done, errormsg);
   tr::ExpAndTy *body2 = body_->Translate(venv, tenv, level, done, errormsg);
 

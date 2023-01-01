@@ -16,12 +16,12 @@ void AssemGen::GenAssem(bool need_ra) {
   phase = frame::Frag::Proc;
   fprintf(out_, ".text\n");
   for (auto &&frag : frags->GetList()) {
-    if (typeid(*frag) == typeid(frame::ProcFrag)) {
-      frame::ProcFrag *profrag = (frame::ProcFrag *)frag;
-      fprintf(stderr, "%s___________:\n", profrag->frame_->name_->Name().data());
-      profrag->body_->Print(stderr,0);
-      fprintf(stderr, "~~~~~~end~~~~~\n\n");
-    }
+    // if (typeid(*frag) == typeid(frame::ProcFrag)) {
+    //   frame::ProcFrag *profrag = (frame::ProcFrag *)frag;
+    //   fprintf(stderr, "%s___________:\n", profrag->frame_->name_->Name().data());
+    //   profrag->body_->Print(stderr,0);
+    //   fprintf(stderr, "~~~~~~end~~~~~\n\n");
+    // }
     frag->OutputAssem(out_, phase, need_ra);
   }
     
@@ -42,12 +42,12 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   std::unique_ptr<cg::AssemInstr> assem_instr;
   std::unique_ptr<ra::Result> allocation;
 
-  fprintf(stderr, "enter procfrag canon\n");
+  // fprintf(stderr, "enter procfrag canon\n");
 
   // When generating proc fragment, do not output string assembly
   if (phase != Proc)
     return;
-  fprintf(stderr, "is a procfrag\n");
+  // fprintf(stderr, "is a procfrag\n");
 
   TigerLog("-------====IR tree=====-----\n");
   TigerLog(body_);

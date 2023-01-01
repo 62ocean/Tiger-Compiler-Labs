@@ -159,7 +159,8 @@ assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body)
   body->Append(new assem::OperInstr(
     "retq",
     new temp::TempList({reg_manager->StackPointer()}),
-    nullptr, nullptr
+    new temp::TempList({reg_manager->StackPointer()}), 
+    nullptr
   ));
 
   char buf[100];
