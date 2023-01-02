@@ -10,6 +10,7 @@ namespace fg {
 
 using FNode = graph::Node<assem::Instr>;
 using FNodePtr = graph::Node<assem::Instr>*;
+using FNodeList = graph::NodeList<assem::Instr>;
 using FNodeListPtr = graph::NodeList<assem::Instr>*;
 using FGraph = graph::Graph<assem::Instr>;
 using FGraphPtr = graph::Graph<assem::Instr>*;

@@ -81,4 +81,44 @@ void Map::DumpMap(FILE *out) {
   }
 }
 
+//一直返回new出来的对象，内存够用吗？
+TempList *TempList::Union(TempList *tl) {
+  if (tl == nullptr) {
+    return new TempList(temp_list_);
+  }
+  
+  TempList *res = new TempList();
+  for (auto temp : temp_list_) {
+    res->Append(temp);
+  }
+  for (auto temp : tl->GetList()) {
+    if (!res->Contain(temp)) res->Append(temp);
+  }
+  return res;
+}
+
+TempList *TempList::Diff(TempList *tl) {
+  if (tl == nullptr) {
+    return new TempList(temp_list_);
+  }
+
+  TempList *res = new TempList();
+  for (auto temp : temp_list_) {
+    if (!tl->Contain(temp)) res->Append(temp);
+  }
+  return res;
+}
+
+bool TempList::Equal(TempList *tl) {
+  if (tl == nullptr) return false;
+  
+  for (auto temp : temp_list_) {
+    if (!tl->Contain(temp)) return false;
+  }
+  for (auto temp : tl->GetList()) {
+    if (!this->Contain(temp)) return false;
+  }
+  return true;
+}
+
 } // namespace temp

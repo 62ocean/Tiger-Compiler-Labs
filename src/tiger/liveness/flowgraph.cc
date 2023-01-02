@@ -21,6 +21,7 @@ void FlowGraphFactory::AssemFlowGraph() {
     if (typeid(*instr) == typeid(assem::OperInstr) && ((assem::OperInstr *)instr)->jumps_) {
       for (temp::Label *jump : *((assem::OperInstr *)instr)->jumps_->labels_) {
         FNode *node2 = label_map_->Look(jump);
+        assert(node2);
         flowgraph_->AddEdge(node, node2);
       }
       jump_next = false;
