@@ -20,6 +20,8 @@ public:
   //选择特定的某个寄存器
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
 
+  int GetRegNum() {return reg_num;}
+
   /**
    * Get general-purpose registers except RSI
    * NOTE: returned temp list should be in the order of calling convention
@@ -79,6 +81,30 @@ public:
   
   virtual ~Access() = default;
   
+};
+
+class InFrameAccess : public Access {
+public:
+  int offset;
+
+  explicit InFrameAccess(int offset) : offset(offset) {}
+  
+  tree::Exp *ToExp(tree::Exp *framePtr) {
+    return new tree::MemExp(
+      new tree::BinopExp(tree::PLUS_OP, framePtr, new tree::ConstExp(offset)));
+  }
+};
+
+
+class InRegAccess : public Access {
+public:
+  temp::Temp *reg;
+
+  explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
+  
+  tree::Exp *ToExp(tree::Exp *framePtr) {
+    return new tree::TempExp(reg);
+  }
 };
 
 class Frame {

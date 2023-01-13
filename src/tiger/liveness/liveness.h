@@ -30,16 +30,19 @@ public:
   void Prepend(INodePtr src, INodePtr dst) {
     move_list_.emplace_front(src, dst);
   }
+  bool isEmpty() {return move_list_.empty();}
   MoveList *Union(MoveList *list);
   MoveList *Intersect(MoveList *list);
 
 private:
+  //用两个点组成的pair来表示一条边
   std::list<std::pair<INodePtr, INodePtr>> move_list_;
 };
 
 struct LiveGraph {
   IGraphPtr interf_graph;
   MoveList *moves;
+
 
   LiveGraph(IGraphPtr interf_graph, MoveList *moves)
       : interf_graph(interf_graph), moves(moves) {}
@@ -55,6 +58,9 @@ public:
   void Liveness();
   LiveGraph GetLiveGraph() { return live_graph_; }
   tab::Table<temp::Temp, INode> *GetTempNodeMap() { return temp_node_map_; }
+
+  void output_in_out();
+  void output_livegraph();
 
 private:
   fg::FGraphPtr flowgraph_;

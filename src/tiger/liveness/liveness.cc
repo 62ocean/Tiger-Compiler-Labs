@@ -28,9 +28,11 @@ MoveList *MoveList::Union(MoveList *list) {
   for (auto move : move_list_) {
     res->move_list_.push_back(move);
   }
-  for (auto move : list->GetList()) {
-    if (!res->Contain(move.first, move.second))
-      res->move_list_.push_back(move);
+  if (list != nullptr) {
+    for (auto move : list->GetList()) {
+      if (!res->Contain(move.first, move.second))
+        res->move_list_.push_back(move);
+    }
   }
   return res;
 }
@@ -91,27 +93,65 @@ void LiveGraphFactory::InterfGraph() {
 
   //precolored registers
   temp::TempList *precolored = reg_manager->Registers();
+  //建node
   for (temp::Temp *reg : precolored->GetList()) {
     INode *node = live_graph_.interf_graph->NewNode(reg);
     temp_node_map_->Enter(reg, node);
   }
+  //两两之间连边
   for (temp::Temp *reg : precolored->GetList()) {
     for (temp::Temp *reg2 : precolored->GetList()) {
       if (reg == reg2) continue;
+      //AddEdge中会判断改边是否已存在
       live_graph_.interf_graph->AddEdge(temp_node_map_->Look(reg), temp_node_map_->Look(reg2));
       live_graph_.interf_graph->AddEdge(temp_node_map_->Look(reg2), temp_node_map_->Look(reg));
     }
   }
 
-  //没有考虑move的情况！
+  //将指令中存在的寄存器全部变为node
+  for (fg::FNode *fnode : flowgraph_->Nodes()->GetList()) {
+    temp::TempList *def_list = fnode->NodeInfo()->Def();
+    temp::TempList *use_list = fnode->NodeInfo()->Use();
+    if (def_list) {
+      for (temp::Temp *t : def_list->GetList()) {
+        INode *node = temp_node_map_->Look(t);
+        if (!node) {
+          node = live_graph_.interf_graph->NewNode(t);
+          temp_node_map_->Enter(t, node);
+        }
+      }
+    }
+    if (use_list) {
+      for (temp::Temp *t : use_list->GetList()) {
+        INode *node = temp_node_map_->Look(t);
+        if (!node) {
+          node = live_graph_.interf_graph->NewNode(t);
+          temp_node_map_->Enter(t, node);
+        }
+      }
+    }
+  }
+
+  
   for (fg::FNode *fnode : flowgraph_->Nodes()->GetList()) {
     if (!fnode->NodeInfo()->Def()) continue;
-
     temp::TempList *out_list = out_->Look(fnode);
+
+    //处理move
+    if (typeid(*fnode->NodeInfo()) == typeid(assem::MoveInstr)) {
+      INode *dst = temp_node_map_->Look(fnode->NodeInfo()->Def()->GetList().front());
+      INode *src = temp_node_map_->Look(fnode->NodeInfo()->Use()->GetList().front());
+      live_graph_.moves->Append(src, dst);
+      
+      out_list = out_list->Diff(fnode->NodeInfo()->Use());
+    }
+
     for (temp::Temp *def : fnode->NodeInfo()->Def()->GetList()) {
-      INode *node1 = temp_node_map_->Look(def) ? temp_node_map_->Look(def) : live_graph_.interf_graph->NewNode(def);
+      INode *node1 = temp_node_map_->Look(def);
+      assert(node1);
       for (temp::Temp *out : out_list->GetList()) {
-        INode *node2 = temp_node_map_->Look(out) ? temp_node_map_->Look(out) : live_graph_.interf_graph->NewNode(out);
+        INode *node2 = temp_node_map_->Look(out);
+        assert(node2);
         if (def != out) {
           live_graph_.interf_graph->AddEdge(node1, node2);
           live_graph_.interf_graph->AddEdge(node2, node1);
@@ -125,5 +165,46 @@ void LiveGraphFactory::Liveness() {
   LiveMap();
   InterfGraph();
 }
+
+//调试函数
+void LiveGraphFactory::output_in_out() {
+  temp::Map *color = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
+  for (fg::FNode *node : flowgraph_->Nodes()->GetList()) {
+    node->NodeInfo()->Print(stderr, color);
+
+    temp::TempList *in_list = in_->Look(node);
+    fprintf(stderr, "in: ");
+    for (temp::Temp *t : in_list->GetList()) {
+      fprintf(stderr, "%s ", color->Look(t)->data());
+    }
+    fprintf(stderr, "\n");
+
+    temp::TempList *out_list = out_->Look(node);
+    fprintf(stderr, "out: ");
+    for (temp::Temp *t : out_list->GetList()) {
+      fprintf(stderr, "%s ", color->Look(t)->data());
+    }
+    fprintf(stderr, "\n\n");
+  }
+}
+void LiveGraphFactory::output_livegraph() {
+  temp::Map *color = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
+  for (live::INode *inode : live_graph_.interf_graph->Nodes()->GetList()) {
+    if (reg_manager->Registers()->Contain(inode->NodeInfo())) continue;
+    fprintf(stderr, "%s::: ", color->Look(inode->NodeInfo())->data());
+
+    for (live::INode *adj : inode->Pred()->GetList()) {
+      fprintf(stderr, "%s ", color->Look(adj->NodeInfo())->data());
+    }
+    fprintf(stderr, "\n");
+  }
+
+  fprintf(stderr, "moves:\n");
+  for (auto move : live_graph_.moves->GetList()) {
+    fprintf(stderr, "%s->%s\n", color->Look(move.first->NodeInfo())->data(), color->Look(move.second->NodeInfo())->data());
+  }
+}
+
+
 
 } // namespace live

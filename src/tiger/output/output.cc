@@ -98,9 +98,11 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
 
   assem::InstrList *il = assem_instr.get()->GetInstrList();
   
+
   if (need_ra) {
     // Lab 6: register allocation
     TigerLog("----====Register allocate====-----\n");
+    fprintf(stderr, "~~~~~~~~~~~~~~~~function:%s\n",frame_->GetLabel().data());
     ra::RegAllocator reg_allocator(frame_, std::move(assem_instr));
     reg_allocator.RegAlloc();
     allocation = reg_allocator.TransferResult();

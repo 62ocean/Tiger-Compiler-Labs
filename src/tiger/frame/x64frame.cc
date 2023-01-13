@@ -4,29 +4,29 @@ extern frame::RegManager *reg_manager;
 
 namespace frame {
 
-class InFrameAccess : public Access {
-public:
-  int offset;
+// class InFrameAccess : public Access {
+// public:
+//   int offset;
 
-  explicit InFrameAccess(int offset) : offset(offset) {}
+//   explicit InFrameAccess(int offset) : offset(offset) {}
   
-  tree::Exp *ToExp(tree::Exp *framePtr) {
-    return new tree::MemExp(
-      new tree::BinopExp(tree::PLUS_OP, framePtr, new tree::ConstExp(offset)));
-  }
-};
+//   tree::Exp *ToExp(tree::Exp *framePtr) {
+//     return new tree::MemExp(
+//       new tree::BinopExp(tree::PLUS_OP, framePtr, new tree::ConstExp(offset)));
+//   }
+// };
 
 
-class InRegAccess : public Access {
-public:
-  temp::Temp *reg;
+// class InRegAccess : public Access {
+// public:
+//   temp::Temp *reg;
 
-  explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
+//   explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
   
-  tree::Exp *ToExp(tree::Exp *framePtr) {
-    return new tree::TempExp(reg);
-  }
-};
+//   tree::Exp *ToExp(tree::Exp *framePtr) {
+//     return new tree::TempExp(reg);
+//   }
+// };
 
 class X64Frame : public Frame {
   

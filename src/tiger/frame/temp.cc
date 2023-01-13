@@ -121,4 +121,10 @@ bool TempList::Equal(TempList *tl) {
   return true;
 }
 
+void TempList::Temp2Temp(Temp *from, Temp *to) {
+  for (temp::Temp *t : temp_list_) {
+    if (t == from) t = to;
+  }
+}
+
 } // namespace temp
