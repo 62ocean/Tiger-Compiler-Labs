@@ -45,7 +45,8 @@ private:
   void assign_color();
 
   live::MoveList *node_moves(live::INode *);
-  live::INodeList *adjacent_nodes(live::INode *);
+  live::INodeList *adjacent_nodes_now(live::INode *);
+  live::INodeList *adjacent_nodes_all(live::INode *);
   void enable_moves(live::INodeList *);
   live::INode *get_alias(live::INode *);
   void add_node_worklist(live::INode *);

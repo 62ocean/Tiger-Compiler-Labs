@@ -58,8 +58,11 @@ live::MoveList *Color::node_moves(live::INode *inode) {
     live::MoveList *list = related_moves->Look(inode);
     return list->Intersect(not_ready_moves->Union(worklist_moves));
 }
-live::INodeList *Color::adjacent_nodes(live::INode *inode) {
+live::INodeList *Color::adjacent_nodes_now(live::INode *inode) {
     return inode->Pred()->Diff(select_stack->Union(coalesced_nodes))->Diff(precolored);
+}
+live::INodeList *Color::adjacent_nodes_all(live::INode *inode) {
+    return inode->Pred();
 }
 
 void Color::decrement_degree(live::INode *inode) {
@@ -68,7 +71,7 @@ void Color::decrement_degree(live::INode *inode) {
     degree[inode] = d - 1;
 
     if (d == K) {
-        live::INodeList *list = adjacent_nodes(inode);
+        live::INodeList *list = adjacent_nodes_now(inode);
         list->Append(inode);
         enable_moves(list);
 
@@ -86,12 +89,12 @@ void Color::simplify() {
     live::INode *inode = simplify_worknodes->GetList().front();
     simplify_worknodes->DeleteNode(inode);
     select_stack->Prepend(inode);
-    for (live::INode *adj : adjacent_nodes(inode)->GetList()) {
+    for (live::INode *adj : adjacent_nodes_now(inode)->GetList()) {
         // int d = degree[adj];
         // degree[adj] = d - 1;
 
         // if (d == K) {
-        //     live::INodeList *list = adjacent_nodes(adj);
+        //     live::INodeList *list = adjacent_nodes_now(adj);
         //     list->Append(adj);
         //     enable_moves(list);
 
@@ -144,7 +147,7 @@ void Color::coalesce() {
 
 bool Color::can_combine_1(live::INode *u, live::INode *v) {
     bool flag = true;
-    for (live::INode *adj : adjacent_nodes(v)->GetList()) {
+    for (live::INode *adj : adjacent_nodes_now(v)->GetList()) {
         if (!(degree[adj] < K || precolored->Contain(adj) || adj->GoesTo(u))) {
             flag = false;
         }
@@ -152,7 +155,7 @@ bool Color::can_combine_1(live::INode *u, live::INode *v) {
     return flag;
 }
 bool Color::can_combine_2(live::INode *u, live::INode *v) {
-    live::INodeList *list = adjacent_nodes(u)->Union(adjacent_nodes(v));
+    live::INodeList *list = adjacent_nodes_now(u)->Union(adjacent_nodes_now(v));
     int k = 0;
     for (live::INode *inode : list->GetList()) {
         if (degree[inode] >= K) ++k;
@@ -177,7 +180,7 @@ void Color::combine(live::INode *u, live::INode *v) {
     list->Append(v);
     enable_moves(list);
 
-    for (live::INode *adj : adjacent_nodes(v)->GetList()) {
+    for (live::INode *adj : adjacent_nodes_now(v)->GetList()) {
         live_graph_.interf_graph->AddEdge(adj, u);
         live_graph_.interf_graph->AddEdge(u, adj);
         if (adj->GoesTo(u)) {
@@ -266,7 +269,7 @@ void Color::assign_color() {
         for (int i = 0; i < K; ++i) ok_colors.insert(reg_name[i]);
 
         // fprintf(stderr, "adj colors: ");
-        for (live::INode *adj : adjacent_nodes(inode)->GetList()) {
+        for (live::INode *adj : adjacent_nodes_all(inode)->GetList()) {
             live::INode *adj_alias = get_alias(adj);
             if (colored_nodes->Contain(adj_alias) || precolored->Contain(adj_alias)) {
                 std::string adj_color = *(colors->Look(adj_alias->NodeInfo()));
