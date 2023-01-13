@@ -19,8 +19,8 @@ void RegAllocator::RegAlloc() {
     fprintf(stderr, "livegraph factory ok\n");
     livegraph_factory.Liveness();
     fprintf(stderr, "build interfere graph ok\n");
-    // livegraph_factory.output_in_out();
-    // livegraph_factory.output_livegraph();
+    livegraph_factory.output_in_out();
+    livegraph_factory.output_livegraph();
     col::Color color(livegraph_factory.GetLiveGraph());
     color.ColorReg();
     fprintf(stderr, "assign color ok\n");
