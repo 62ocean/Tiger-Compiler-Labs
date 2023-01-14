@@ -72,6 +72,7 @@ public:
     }
     return false;
   }
+  void Print(temp::Map *map);
   void Temp2Temp(Temp *from, Temp *to);
   [[nodiscard]] Temp *NthTemp(int i) const;
   [[nodiscard]] const std::list<Temp *> &GetList() const { return temp_list_; }

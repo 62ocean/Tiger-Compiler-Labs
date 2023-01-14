@@ -122,9 +122,22 @@ bool TempList::Equal(TempList *tl) {
 }
 
 void TempList::Temp2Temp(Temp *from, Temp *to) {
-  for (temp::Temp *t : temp_list_) {
-    if (t == from) t = to;
+  auto it = temp_list_.begin();
+  for (; it != temp_list_.end(); it++) {
+    if (*it == from)
+      break;
   }
+  if (it == temp_list_.end()) return;
+  temp_list_.insert(it, to);
+  temp_list_.erase(it);
+}
+
+void TempList::Print(temp::Map *map) {
+  fprintf(stderr, "templist: ");
+  for (temp::Temp *t : temp_list_) {
+    fprintf(stderr, "%s ", map->Look(t)->data());
+  }
+  fprintf(stderr, "\n");
 }
 
 } // namespace temp

@@ -138,7 +138,7 @@ tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm)
 
 assem::InstrList *ProcEntryExit2(assem::InstrList *body)
 {
-  body->Append(new assem::OperInstr("", nullptr, reg_manager->ReturnSink(), nullptr));
+  body->Append(new assem::OperInstr("", new temp::TempList(), reg_manager->ReturnSink(), nullptr));
   return body;
 }
 
@@ -149,12 +149,12 @@ assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body)
   body->Insert(body->GetList().begin(), new assem::OperInstr(
     "subq $"+std::to_string(frame_size)+",`d0",
     new temp::TempList({reg_manager->StackPointer()}),
-    nullptr, nullptr
+    new temp::TempList(), nullptr
   ));
   body->Append(new assem::OperInstr(
     "addq $"+std::to_string(frame_size)+",`d0",
     new temp::TempList({reg_manager->StackPointer()}),
-    nullptr, nullptr
+    new temp::TempList(), nullptr
   ));
   body->Append(new assem::OperInstr(
     "retq",

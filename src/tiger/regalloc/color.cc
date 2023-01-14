@@ -239,7 +239,7 @@ void Color::select_spill() {
     live::INode *m;
     int max_degree = -1;
     for (live::INode *inode : spill_worknodes->GetList()) {
-        fprintf(stderr, "degree_______:%d\n",degree[inode]);
+        // fprintf(stderr, "degree_______:%d\n",degree[inode]);
         if (degree[inode] > max_degree) {
             m = inode;
             max_degree = degree[inode];
