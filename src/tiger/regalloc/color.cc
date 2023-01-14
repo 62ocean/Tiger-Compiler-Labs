@@ -8,13 +8,13 @@ namespace col {
 void Color::ColorReg() {
     init();
     make_node_worklist();
-    output_worklist();
+    // output_worklist();
     while (!simplify_worknodes->isEmpty() || !freeze_worknodes->isEmpty() || !spill_worknodes->isEmpty() || !worklist_moves->isEmpty()) {
-        if (!simplify_worknodes->isEmpty()) {simplify(); fprintf(stderr, "[[[[[simplify]]]]]\n");}
-        else if (!worklist_moves->isEmpty()) {coalesce(); fprintf(stderr, "[[[[[coalesce]]]]]\n");}
-        else if (!freeze_worknodes->isEmpty()) {freeze(); fprintf(stderr, "[[[[[freeze]]]]]\n");}
-        else if (!spill_worknodes->isEmpty()) {select_spill(); fprintf(stderr, "[[[[[spill]]]]]\n");}
-        output_worklist();
+        if (!simplify_worknodes->isEmpty()) {simplify(); /*fprintf(stderr, "[[[[[simplify]]]]]\n");*/}
+        else if (!worklist_moves->isEmpty()) {coalesce(); /*fprintf(stderr, "[[[[[coalesce]]]]]\n");*/}
+        else if (!freeze_worknodes->isEmpty()) {freeze(); /*fprintf(stderr, "[[[[[freeze]]]]]\n");*/}
+        else if (!spill_worknodes->isEmpty()) {select_spill(); /*fprintf(stderr, "[[[[[spill]]]]]\n");*/}
+        // output_worklist();
     }
     assign_color();
 
@@ -90,22 +90,6 @@ void Color::simplify() {
     simplify_worknodes->DeleteNode(inode);
     select_stack->Prepend(inode);
     for (live::INode *adj : adjacent_nodes(inode)->GetList()) {
-        // int d = degree[adj];
-        // degree[adj] = d - 1;
-
-        // if (d == K) {
-        //     live::INodeList *list = adjacent_nodes(adj);
-        //     list->Append(adj);
-        //     enable_moves(list);
-
-        //     spill_worknodes->DeleteNode(adj);
-
-        //     if (!node_moves(adj)->isEmpty()) {
-        //         freeze_worknodes->Append(adj);
-        //     } else {
-        //         simplify_worknodes->Append(adj);
-        //     }
-        // }
         decrement_degree(adj);
     }
 }
@@ -235,11 +219,9 @@ void Color::freeze_moves(live::INode *u) {
 }
 
 void Color::select_spill() {
-    //简化了选择策略，忽略了use和def的次数（？）
     live::INode *m;
     double min_w = 99999999;
     for (live::INode *inode : spill_worknodes->GetList()) {
-        // fprintf(stderr, "degree_______:%d\n",degree[inode]);
         double inode_w = def_use_num[inode->NodeInfo()] / degree[inode];
         if (inode_w < min_w) {
             m = inode;
@@ -247,8 +229,6 @@ void Color::select_spill() {
         }
     }
     spill_worknodes->DeleteNode(m);
-    // fprintf(stderr, "after delete spill:");
-    // output_worklist_size();
     simplify_worknodes->Append(m);
     freeze_moves(m);
 }
@@ -256,34 +236,25 @@ void Color::select_spill() {
 void Color::assign_color() {
     //precolored registers
     std::string reg_name[16] = {"%rax","%rbx","%rcx","%rdx","%rsi","%rdi","%rbp","%rsp","%r8","%r9","%r10","%r11","%r12","%r13","%r14","%r15"};
-    // std::unordered_map<std::string, int> reg_name2num;
+
     int i = 0;
     for (temp::Temp *t : reg_manager->Registers()->GetList()) {
         colors->Enter(t, new std::string(reg_name[i++]));
-        // reg_name2num[reg_name[i]] = i;
     }
-    // fprintf(stderr, "[[[[[[[[[[[[select stack size: %d\n", select_stack->GetList().size());
+    
     while (!select_stack->isEmpty()) {
         live::INode *inode = select_stack->GetList().front();
         select_stack->DeleteNode(inode);
         std::set<std::string> ok_colors;
         for (int i = 0; i < K; ++i) ok_colors.insert(reg_name[i]);
 
-        // fprintf(stderr, "adj colors: ");
         for (live::INode *adj : adjacent_nodes_all(inode)->GetList()) {
             live::INode *adj_alias = get_alias(adj);
             if (colored_nodes->Contain(adj_alias) || precolored->Contain(adj_alias)) {
                 std::string adj_color = *(colors->Look(adj_alias->NodeInfo()));
-                // fprintf(stderr, "%s ", adj_color.data());
                 ok_colors.erase(adj_color);
             }
         } 
-        // fprintf(stderr, "\n");
-        // fprintf(stderr, "ok colors: ");
-        // for (std::string s : ok_colors) {
-            // fprintf(stderr, "%s ", s.data());
-        // }
-        // fprintf(stderr, "\n");
 
         if (ok_colors.empty()) {
             spilled_nodes->Append(inode);

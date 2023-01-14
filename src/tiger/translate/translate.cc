@@ -131,10 +131,7 @@ void ProgTr::Translate() {
   tree::Stm *ret = tr_tree->exp_->UnNx();
   ret = frame::ProcEntryExit1(main_level_.get()->frame_, ret);
 
-  //将main函数的fragment保存
-  //如果有时间也把tigermain当作一个函数处理一下
   frags->PushBack(new frame::ProcFrag(ret, main_level_.get()->frame_));
-  // tr_tree->exp_->UnNx()->Print(stderr, 0);
 }
 
 } // namespace tr
@@ -150,21 +147,17 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
-  // fprintf(stderr, "simple var\n");
   env::VarEntry *var = (env::VarEntry *)venv->Look(sym_);     
   type::Ty *type = var->ty_;
   tree::Exp *retExp = new tree::TempExp(reg_manager->FramePointer());
   
   tr::Level *lv = level;
   while (var->access_->level_ != lv) {
-    // fprintf(stderr, "static link exit\n");
     frame::Access *sl = lv->frame_->formals->front();
     retExp = sl->ToExp(retExp);
     lv = lv->parent_;
   }
-  // fprintf(stderr, "after static link\n");
   retExp = var->access_->access_->ToExp(retExp);
-  // fprintf(stderr, "simple var ok\n");
   return new tr::ExpAndTy(new tr::ExExp(retExp), type->ActualTy());
 }
 
@@ -174,12 +167,9 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   type::Ty *type;
   tree::Exp *retExp;
 
-  // fprintf(stderr, "fieldvar\n");
   tr::ExpAndTy *base = var_->Translate(venv, tenv, level, label, errormsg);
-  // fprintf(stderr, "translate main var ok\n");
   int i = 0;
   for (type::Field *field : ((type::RecordTy *)base->ty_)->fields_->GetList()) {
-    // fprintf(stderr, "type field name: %s field name: %s\n", field->name_->Name().data(), sym_->Name().data());
     if (field->name_ == sym_) {
       type = field->ty_;
       retExp = 
@@ -190,7 +180,6 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     } 
     ++i;
   }
-  // fprintf(stderr, "translate field ok\n");
 
   return new tr::ExpAndTy(new tr::ExExp(retExp), type->ActualTy());
 }
@@ -218,7 +207,6 @@ tr::ExpAndTy *VarExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *NilExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
-  //这样处理可以吗？
   return new tr::ExpAndTy(
     new tr::ExExp(new tree::ConstExp(0)), type::NilTy::Instance()
   );
@@ -244,11 +232,9 @@ tr::ExpAndTy *StringExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                  tr::Level *level, temp::Label *label,
                                  err::ErrorMsg *errormsg) const {
-  // fprintf(stderr, "enter callexp\n");
   env::FunEntry *func = (env::FunEntry *)venv->Look(sym::Symbol::UniqueSymbol(func_->Name()));
   func->label_ = func_;
 
-  // fprintf(stderr, "find func %s\n",func->label_->Name().data());
   tree::ExpList *args = new tree::ExpList;
   int arg_num = 0;
   tr::Exp *ret = nullptr;
@@ -258,7 +244,6 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       func_name == "print" || func_name == "printi" || func_name == "ord" ||
       func_name == "size" || func_name == "concat" || func_name == "substring" || func_name == "getchar") {
     //如该函数是external call
-    // fprintf(stderr, "external call\n");
     //翻译arg
     for (Exp *arg : args_->GetList()) {
       ++arg_num;
@@ -269,7 +254,6 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   } else {
     //如该函数不是external call
-    // fprintf(stderr, "not external call\n");
     //建立static link
     tree::Exp *sl = new tree::TempExp(reg_manager->FramePointer());
     tr::Level *lv = level;
@@ -278,7 +262,6 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       lv = lv->parent_;
     }
     args->Append(sl); ++arg_num;
-    // fprintf(stderr, "set up static link ok\n");
     //翻译arg
     for (Exp *arg : args_->GetList()) {
       ++arg_num;
@@ -288,7 +271,6 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     ret = new tr::ExExp(new tree::CallExp(new tree::NameExp(func_), args));
   }
   level->frame_->max_call_args = std::max(arg_num - 6, level->frame_->max_call_args);
-  // fprintf(stderr, "call ok\n");
 
   return new tr::ExpAndTy(ret, func->result_->ActualTy());
 }
@@ -296,7 +278,6 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                tr::Level *level, temp::Label *label,
                                err::ErrorMsg *errormsg) const {
-  //还有string comparison!!!
   tr::ExpAndTy *left = left_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *right = right_->Translate(venv, tenv, level, label, errormsg);
 
@@ -412,7 +393,6 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   int field_num = 0;
   for (EField *efield : fields_->GetList()) {
     tr::ExpAndTy *tr_exp = efield->exp_->Translate(venv, tenv, level, label, errormsg);
-    // fprintf(stderr, "translate efield ok\n");
     if (ret == nullptr) {
       ret = new tree::MoveStm(
         new tree::MemExp(
@@ -432,7 +412,6 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
     ++field_num;
   }
-  // fprintf(stderr, "init field ok\n");
 
   //malloc申请空间的语句
   //如果是一个empty record，malloc会出错吗？需要特殊判断吗？
@@ -449,7 +428,6 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       ), ret
     );
   }
-  // fprintf(stderr, "malloc ok\n");
 
   return new tr::ExpAndTy(
     new tr::ExExp(new tree::EseqExp(ret, new tree::TempExp(r))),
@@ -466,7 +444,6 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   for (Exp *exp : seq_->GetList()) {
     tr::ExpAndTy *tr_exp = exp->Translate(venv, tenv, level, label, errormsg);
-    // fprintf(stderr, "translate one seqexp ok\n");
     if (exp == seq_->GetList().back()) {
       type = tr_exp->ty_->ActualTy();
       if (ret_stm == nullptr) {
@@ -481,7 +458,6 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         ret_stm = new tree::SeqStm(ret_stm, tr_exp->exp_->UnNx());
       }
     }
-    // fprintf(stderr, "connect seqexp ok\n");
   }
 
   return new tr::ExpAndTy(new tr::ExExp(ret), type);
@@ -553,7 +529,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     );
     return new tr::ExpAndTy(ret, type::VoidTy::Instance());
   }
-  // fprintf(stderr, "一个正确的程序不该执行到这里1\n");
+  // fprintf(stderr, "一个正确的程序不该执行到这里\n");
 }
 
 tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -635,10 +611,7 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tenv->BeginScope();
   venv->BeginScope();
 
-  // fprintf(stderr, "let\n");
-
   //翻译，修改tenv/venv，并生成初始化语句
-  // std::vector<tr::Exp *> init;
   tree::Stm *init_stms = nullptr;
   for (Dec *decs : decs_->GetList()) {
     tr::Exp *stm = decs->Translate(venv, tenv, level, label, errormsg);
@@ -649,12 +622,9 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         init_stms = new tree::SeqStm(init_stms, stm->UnNx());
       }
     }
-    // init.push_back(stm);
   }
-  // fprintf(stderr, "dec ok\n");
   //翻译body
   tr::ExpAndTy *body = body_->Translate(venv, tenv, level, label, errormsg);
-  // fprintf(stderr, "body ok\n");
   //将初始化语句添加到body开头
   tree::Exp *ret;
   if (init_stms) {
@@ -662,12 +632,6 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   } else {
     ret = body->exp_->UnEx();
   }
-  
-  // fprintf(stderr, "init ok\n");
-  // tree::Exp *ret = body->exp_->UnEx();
-  // for (int i = init.size() - 1; i >= 0; --i) {
-  //   ret = new tree::EseqExp(init[i]->UnNx(), ret);
-  // }
 
   tenv->EndScope();
   venv->EndScope();
@@ -722,9 +686,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     ++ait;
     auto fit = flist.begin();
     for (; ait != fun->level_->frame_->formals->end() && fit != flist.end(); ++ait,++fit) {
-      // fprintf(stderr, "%s: \n", (*fit)->name_->Name().data());
       (*ait)->ToExp(new tree::TempExp(reg_manager->FramePointer()))->Print(stderr,0);
-      // fprintf(stderr, "\n");
       venv->Enter((*fit)->name_, new env::VarEntry(new tr::Access(fun->level_, (*ait)),(*fit)->ty_));
     }
     //翻译函数体
@@ -753,12 +715,9 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                            tr::Level *level, temp::Label *label,
                            err::ErrorMsg *errormsg) const {
-  // fprintf(stderr, "var dec\n");
   tr::Access *access = tr::Access::AllocLocal(level, escape_);
-  // fprintf(stderr, "alloc ok\n");
   tr::ExpAndTy *init = init_->Translate(venv, tenv, level, label, errormsg);
   venv->Enter(var_, new env::VarEntry(access, init->ty_));
-  // fprintf(stderr, "translate init ok\n");
   tree::MoveStm *ret = new tree::MoveStm(
     access->access_->ToExp(new tree::TempExp(reg_manager->FramePointer())), 
     init->exp_->UnEx()
@@ -776,7 +735,6 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     type::Ty *ty = tenv->Look(name_ty->name_);
     ((type::NameTy *)ty)->ty_ = name_ty->ty_->Translate(tenv, errormsg);
   }
-  // fprintf(stderr, "type ok\n");
   return new tr::ExExp(new tree::ConstExp(0));
 }
 
