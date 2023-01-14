@@ -242,7 +242,7 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
       //move(mem(r),const)
       temp::Temp *dst_mem_reg = dst_mem->exp_->Munch(instr_list, fs);
       instr_list.Append(new assem::OperInstr(
-        "movq $"+std::to_string(((ConstExp *)src_)->consti_)+",(`s0)",
+        "movq $"+std::to_string(((ConstExp *)src_)->consti_)+",0(`s0)",
         new temp::TempList(),
         new temp::TempList({dst_mem_reg}), nullptr
       ));
@@ -255,7 +255,7 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     temp::Temp *src_reg = src_->Munch(instr_list, fs);
     temp::Temp *dst_mem_reg = dst_mem->exp_->Munch(instr_list, fs);
     instr_list.Append(new assem::OperInstr(
-      "movq `s0,(`s1)",
+      "movq `s0,0(`s1)",
       new temp::TempList(),
       new temp::TempList({src_reg, dst_mem_reg}),
       nullptr
@@ -331,7 +331,7 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     temp::Temp *dst_reg = dst_->Munch(instr_list, fs);
     temp::Temp *src_mem_reg = src_mem->exp_->Munch(instr_list, fs);
     instr_list.Append(new assem::OperInstr(
-      "movq (`s0),`d0",
+      "movq 0(`s0),`d0",
       new temp::TempList({dst_reg}),
       new temp::TempList({src_mem_reg}),
       nullptr
@@ -762,7 +762,7 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   // fprintf(stderr, "mem(r)\n");
   temp::Temp *reg = exp_->Munch(instr_list, fs);
   instr_list.Append(new assem::OperInstr(
-    "movq (`s0),`d0",
+    "movq 0(`s0),`d0",
     new temp::TempList({r}),
     new temp::TempList({reg}),
     nullptr

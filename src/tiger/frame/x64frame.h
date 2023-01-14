@@ -32,6 +32,8 @@ class X64RegManager : public RegManager {
 
 private:
 
+temp::Temp *fp;
+
 public:
   X64RegManager() {
     reg_num = 16;
@@ -44,11 +46,13 @@ public:
       temp_map_->Enter(t, new std::string(reg_name[i]));
     }
 
+    fp = temp::TempFactory::NewTemp();
+    temp_map_->Enter(fp, new std::string("%rbp"));
   }
 
   int WordSize() {return 8;}
 
-  temp::Temp *FramePointer() {return regs_[RBP];}
+  temp::Temp *FramePointer() {return fp;}
 
   temp::Temp *StackPointer() {return regs_[RSP];}
 
@@ -76,8 +80,7 @@ public:
       regs_[RCX], 
       regs_[R8], 
       regs_[R9],
-      regs_[RAX],
-      regs_[RSP]
+      regs_[RAX]
     });
   }
 

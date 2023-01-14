@@ -85,10 +85,6 @@ void RegAllocator::rewrite_program(live::INodeList *spilled_nodes) {
                     (*it)->Def()->Temp2Temp(spill_node->NodeInfo(), v->reg);
                     // (*it)->Def()->Print(color1);
 
-                    temp::TempList *list = new temp::TempList(reg_manager->StackPointer());
-                    list->Temp2Temp(reg_manager->StackPointer(), reg_manager->FramePointer());
-                    list->Print(color1);
-
                     ++it;
                     instrs->Insert(it, new assem::OperInstr(
                         "movq `s0,"+std::to_string(m->offset)+"+"+fs+"(`d0)",
