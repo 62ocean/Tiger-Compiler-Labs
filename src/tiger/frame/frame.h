@@ -23,7 +23,7 @@ public:
   int GetRegNum() {return reg_num;}
 
   /**
-   * Get general-purpose registers except RSI
+   * Get general-purpose registers except RSI (why?)
    * NOTE: returned temp list should be in the order of calling convention
    * @return general-purpose registers
    */

@@ -594,7 +594,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       ));
       instr_list.Append(new assem::OperInstr(
         "imulq `s0",
-        new temp::TempList({reg_manager->GetRegister(frame::RAX)}),
+        new temp::TempList({reg_manager->GetRegister(frame::RAX), reg_manager->GetRegister(frame::RDX)}),
         new temp::TempList({reg2, reg_manager->GetRegister(frame::RAX)}),
         nullptr
       ));
@@ -604,6 +604,12 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         "movq `s0,`d0",
         new temp::TempList({r}),
         new temp::TempList({reg_manager->GetRegister(frame::RAX)})
+      ));
+      temp::Temp *tmp = temp::TempFactory::NewTemp();
+      instr_list.Append(new assem::MoveInstr(
+        "movq `s0,`d0",
+        new temp::TempList(tmp),
+        new temp::TempList(reg_manager->GetRegister(frame::RDX))
       ));
       return r;
     }
@@ -662,9 +668,14 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         new temp::TempList({reg1})
       ));
       instr_list.Append(new assem::OperInstr(
+        "movq $0,`d0",
+        new temp::TempList({reg_manager->GetRegister(frame::RDX)}),
+        new temp::TempList(), nullptr
+      ));
+      instr_list.Append(new assem::OperInstr(
         "idivq `s0",
-        new temp::TempList({reg_manager->GetRegister(frame::RAX)}),
-        new temp::TempList({reg2, reg_manager->GetRegister(frame::RAX)}),
+        new temp::TempList({reg_manager->GetRegister(frame::RAX), reg_manager->GetRegister(frame::RDX)}),
+        new temp::TempList({reg2, reg_manager->GetRegister(frame::RAX), reg_manager->GetRegister(frame::RDX)}),
         nullptr
       ));
       //加上这一句有利于寄存器分配，不需要的移动会消掉，需要的移动会保留
@@ -673,6 +684,12 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         "movq `s0,`d0",
         new temp::TempList({r}),
         new temp::TempList({reg_manager->GetRegister(frame::RAX)})
+      ));
+      temp::Temp *tmp = temp::TempFactory::NewTemp();
+      instr_list.Append(new assem::MoveInstr(
+        "movq `s0,`d0",
+        new temp::TempList(tmp),
+        new temp::TempList(reg_manager->GetRegister(frame::RDX))
       ));
       return r;
     }
@@ -800,7 +817,7 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::TempList *list = args_->MunchArgs(instr_list, fs);
 
   temp::TempList *calldefs = reg_manager->CallerSaves();
-  calldefs->Append(reg_manager->ReturnValue());
+  // calldefs->Append(reg_manager->ReturnValue());
 
   instr_list.Append(new assem::OperInstr(
     "callq "+temp::LabelFactory::LabelString(fun->name_),

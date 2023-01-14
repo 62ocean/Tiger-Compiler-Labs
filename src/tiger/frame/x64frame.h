@@ -67,11 +67,29 @@ public:
   }
 
   temp::TempList *CallerSaves() {
-    return new temp::TempList({regs_[R10], regs_[R11]});
+    return new temp::TempList({
+      regs_[R10], 
+      regs_[R11],
+      regs_[RDI], 
+      regs_[RSI], 
+      regs_[RDX], 
+      regs_[RCX], 
+      regs_[R8], 
+      regs_[R9],
+      regs_[RAX],
+      regs_[RSP]
+    });
   }
 
   temp::TempList *CalleeSaves() {
-    return new temp::TempList({regs_[RBX], regs_[R12], regs_[R13], regs_[R14], regs_[R15]});
+    return new temp::TempList({
+      regs_[RBX], 
+      regs_[R12], 
+      regs_[R13], 
+      regs_[R14], 
+      regs_[R15],
+      regs_[RBP]
+    });
   }
 
   temp::TempList *ReturnSink() {
