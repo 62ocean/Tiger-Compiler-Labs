@@ -166,7 +166,7 @@ assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body)
   char buf[100];
   sprintf(buf, ".set %s_framesize, %d\n", temp::LabelFactory::LabelString(frame->name_).data(), frame_size);
   sprintf(buf, "%s%s:\n", buf, temp::LabelFactory::LabelString(frame->name_).data());
-  return new assem::Proc(std::string(buf), body, "");
+  return new assem::Proc(std::string(buf), body, "\n");
 }
 
 } // namespace frame

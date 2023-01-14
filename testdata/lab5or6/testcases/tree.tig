@@ -4,12 +4,14 @@ let
 
   /* Insert t2 as t1's children */
   function insert(t1: node, t2: node) : node =
+    (print("start insert:\n");
+    printi(t1=nil);print(" ");printi(t1.key);print(" ");print(" ");printi(t2.key);print(" \n");
     if t1 = nil 
       then t2 
       else 
         if t1.key > t2.key 
           then node { key = t1.key, left = insert(t1.left, t2), right = t1.right }
-          else node { key = t1.key, left = t1.left, right = insert(t1.right, t2) }
+          else node { key = t1.key, left = t1.left, right = insert(t1.right, t2) })
         
   function printint(i: int) = 
     let 
@@ -36,15 +38,25 @@ let
   var node25 : node := getnode(25)
  
  in
-  (root := insert(root, getnode(50));
+  (print("0\n");
+    root := insert(root, getnode(50));
+  print("1\n");
    root := insert(root, getnode(75)); 
+   print("2\n");
    node25 := insert(node25, getnode(5));
+   print("3\n");
    node25 := insert(node25, getnode(40));
+   print("4\n");
    root := insert(root, node25);
+   print("5\n");
    root := insert(root, getnode(80));
+   print("6\n");
    root := insert(root, getnode(60));
+   print("7\n");
    root := insert(root, getnode(55));
+   print("8\n");
    root := insert(root, getnode(33));
+   print("9\n");
    printtree(root))
   
 end  
