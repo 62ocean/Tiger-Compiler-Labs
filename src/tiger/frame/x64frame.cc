@@ -111,7 +111,7 @@ tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm)
   temp::TempList *callee_regs = reg_manager->CalleeSaves();
 
   for (temp::Temp *reg : callee_regs->GetList()) {
-    Access *tmp = frame->AllocLocal(true);
+    Access *tmp = frame->AllocLocal(false);
 
     stm = new tree::SeqStm(
       new tree::MoveStm(
