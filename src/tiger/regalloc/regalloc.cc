@@ -21,7 +21,7 @@ void RegAllocator::RegAlloc() {
     fprintf(stderr, "build interfere graph ok\n");
     livegraph_factory.output_in_out();
     livegraph_factory.output_livegraph();
-    col::Color color(livegraph_factory.GetLiveGraph());
+    col::Color color(livegraph_factory.GetLiveGraph(), livegraph_factory.GetDefUseNum());
     color.ColorReg();
     fprintf(stderr, "assign color ok\n");
     std::unique_ptr<col::Result> color_result = color.TransferResult();

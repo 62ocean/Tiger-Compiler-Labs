@@ -6,6 +6,7 @@
 #include "tiger/frame/temp.h"
 #include "tiger/liveness/flowgraph.h"
 #include "tiger/util/graph.h"
+#include <unordered_map>
 
 namespace live {
 
@@ -57,6 +58,7 @@ public:
         temp_node_map_(new tab::Table<temp::Temp, INode>()) {}
   void Liveness();
   LiveGraph GetLiveGraph() { return live_graph_; }
+  std::unordered_map<temp::Temp *, int> GetDefUseNum() {return def_use_num;}
   tab::Table<temp::Temp, INode> *GetTempNodeMap() { return temp_node_map_; }
 
   void output_in_out();
@@ -65,11 +67,13 @@ public:
 private:
   fg::FGraphPtr flowgraph_;
   LiveGraph live_graph_;
+  std::unordered_map<temp::Temp *, int> def_use_num;
 
   std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> in_;
   std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> out_;
   tab::Table<temp::Temp, INode> *temp_node_map_;
 
+  void CalculateDefUse();
   void LiveMap();
   void InterfGraph();
 };

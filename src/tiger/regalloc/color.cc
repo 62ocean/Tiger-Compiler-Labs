@@ -237,12 +237,13 @@ void Color::freeze_moves(live::INode *u) {
 void Color::select_spill() {
     //简化了选择策略，忽略了use和def的次数（？）
     live::INode *m;
-    int max_degree = -1;
+    double min_w = 99999999;
     for (live::INode *inode : spill_worknodes->GetList()) {
         // fprintf(stderr, "degree_______:%d\n",degree[inode]);
-        if (degree[inode] > max_degree) {
+        double inode_w = def_use_num[inode->NodeInfo()] / degree[inode];
+        if (inode_w < min_w) {
             m = inode;
-            max_degree = degree[inode];
+            min_w = inode_w;
         }
     }
     spill_worknodes->DeleteNode(m);
@@ -337,8 +338,8 @@ void Color::output_worklist() {
 }
 
 
-Color::Color(live::LiveGraph live_graph)
-    : live_graph_(live_graph),
+Color::Color(live::LiveGraph live_graph, std::unordered_map<temp::Temp *, int> def_use_num0)
+    : live_graph_(live_graph), def_use_num(def_use_num0),
       related_moves(new tab::Table<live::INode, live::MoveList>()) {
         precolored = new live::INodeList();
         spill_worknodes = new live::INodeList();

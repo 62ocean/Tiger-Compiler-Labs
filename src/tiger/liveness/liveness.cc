@@ -161,9 +161,24 @@ void LiveGraphFactory::InterfGraph() {
   }
 }
 
+void LiveGraphFactory::CalculateDefUse() {
+  for (live::INode *inode : live_graph_.interf_graph->Nodes()->GetList()) {
+    def_use_num[inode->NodeInfo()] = 0;
+  }
+  for (fg::FNode *instr : flowgraph_->Nodes()->GetList()) {
+    for (temp::Temp *t : instr->NodeInfo()->Def()->GetList()) {
+      def_use_num[t]++;
+    }
+    for (temp::Temp *t : instr->NodeInfo()->Use()->GetList()) {
+      def_use_num[t]++;
+    }
+  }
+}
+
 void LiveGraphFactory::Liveness() {
   LiveMap();
   InterfGraph();
+  CalculateDefUse();
 }
 
 //调试函数

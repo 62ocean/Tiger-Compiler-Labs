@@ -19,7 +19,7 @@ struct Result {
 
 class Color {
 public:
-  Color(live::LiveGraph live_graph);
+  Color(live::LiveGraph live_graph, std::unordered_map<temp::Temp *, int>);
 
   void ColorReg();
   std::unique_ptr<Result> TransferResult() {
@@ -28,6 +28,7 @@ public:
 
 private:
   live::LiveGraph live_graph_;
+  std::unordered_map<temp::Temp *, int> def_use_num;
   std::unique_ptr<Result> result_;
 
   std::unordered_map<live::INode *, int> degree;
