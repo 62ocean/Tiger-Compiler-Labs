@@ -22,7 +22,7 @@ void Color::ColorReg() {
 }
 
 void Color::init() {
-    //初始化degree[]和moveList[]
+    //初始化degree[]和related_moves[]
     for (live::INode *inode : live_graph_.interf_graph->Nodes()->GetList()) {
         degree[inode] = inode->OutDegree();
         related_moves->Enter(inode, new live::MoveList());

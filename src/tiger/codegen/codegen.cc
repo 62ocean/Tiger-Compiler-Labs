@@ -48,7 +48,6 @@ void JumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  //如有时间可以再写一写const和mem操作数的情况
   temp::Temp *left_reg = left_->Munch(instr_list, fs);
   temp::Temp *right_reg = right_->Munch(instr_list, fs);
   instr_list.Append(new assem::OperInstr(

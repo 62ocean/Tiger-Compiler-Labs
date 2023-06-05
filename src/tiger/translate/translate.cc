@@ -346,7 +346,6 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     }
     break;
   case NEQ_OP:
-    //怎样利用string_equal判断字符串不等？
     stm = new tree::CjumpStm(tree::NE_OP, left->exp_->UnEx(), right->exp_->UnEx(), nullptr, nullptr);
     trues = tr::PatchList({&stm->true_label_});
     falses = tr::PatchList({&stm->false_label_});
@@ -414,7 +413,6 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
 
   //malloc申请空间的语句
-  //如果是一个empty record，malloc会出错吗？需要特殊判断吗？
   if (ret == nullptr) {
     ret = new tree::MoveStm(
       new tree::TempExp(r), 
