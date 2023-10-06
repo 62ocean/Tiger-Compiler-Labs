@@ -5,48 +5,89 @@
 - [Tiger Compiler Labs in C++](#tiger-compiler-labs-in-c)
   - [Contents](#contents)
   - [Overview](#overview)
-  - [Difference Between C Labs and C++ Labs](#difference-between-c-labs-and-c-labs)
-  - [Installing Dependencies](#installing-dependencies)
-  - [Compiling and Debugging](#compiling-and-debugging)
-  - [Testing Your Labs](#testing-your-labs)
-  - [Submitting Your Labs](#submitting-your-labs)
-  - [Formatting Your Codes](#formatting-your-codes)
-  - [Other Commands](#other-commands)
-  - [Contributing to Tiger Compiler](#contributing-to-tiger-compiler)
-  - [External Documentations](#external-documentations)
+  - [Lab 1: Straight-line Program Interpreter](#lab-1-straight-line-program-interpreter)
+  - [Lab 2: Lexical Analysis](#lab-2-lexical-analysis)
+  - [Lab 3: Parsing](#lab-3-parsing)
+  - [Lab 4: Type Checking](#lab-4-type-checking)
+  - [Lab 5: Tiger Compiler without register allocation](#lab-5-tiger-compiler-without-register-allocation)
+  - [Lab 6: Register Allocation](#lab-6-register-allocation)
+  - [Commands](#commands)
 
 ## Overview
 
-We rewrote the Tiger Compiler labs using the C++ programming language because some features in C++ like inheritance and polymorphism
-are more suitable for these labs and less error-prone.
+Course project of SJTU SE3355, 2022.
 
-We provide you all the codes of all labs at one time. In each lab, you only
-need to code in some of the directories.
+The project covers a series of labs, ultimately resulting in a complete compiler that translates Tiger language into x86 assembly. 
 
-## Difference Between C Labs and C++ Labs
+TAs provided C++ frameworks for these labs, and I implemented the contents.
 
-1. Tiger compiler in C++ uses [flexc++](https://fbb-git.gitlab.io/flexcpp/manual/flexc++.html) and [bisonc++](https://fbb-git.gitlab.io/bisoncpp/manual/bisonc++.html) instead of flex and bison because flexc++ and bisonc++ is more flexc++ and bisonc++ are able to generate pure C++ codes instead of C codes wrapped in C++ files.
+## Lab 1: Straight-line Program Interpreter
 
-2. Tiger compiler in C++ uses namespace for modularization and uses inheritance and polymorphism to replace unions used in the old labs.
+> related files: slp.h/cc
 
-3. Tiger compiler in C++ uses CMake instead of Makefile to compile and build the target.
+A “warm-up” exercise. Implement a simple program analyzer and interpreter for the straight-line programming language. 
 
-<!---4. We've introduced lots of modern C++-style codes into tiger compiler, e.g., smart pointers, RAII, RTTI. To get familiar with the features of modern C++ and get recommendations for writing code in modern C++ style, please refer to [this doc](https://ipads.se.sjtu.edu.cn/courses/compilers/tiger-compiler-cpp-style.html) on our course website.-->
+## Lab 2: Lexical Analysis
 
-## Installing Dependencies
+> related files: src/tiger/lex/*
 
-We provide you a Docker image that has already installed all the dependencies. You can compile your codes directly in this Docker image.
+Use [flexc++](https://fbb-git.github.io/flexcpp/manual/flexc++.html) to **implement a lexical scanner** for the Tiger language.
 
-1. Install [Docker](https://docs.docker.com/).
+The lexical scanner for the Tiger language includes the following parts:
+- Basic specifications;
+- Comments handling;
+- Strings handling;
+- Error handling;
 
-2. Run a docker container and mount the lab directory on it.
+## Lab 3: Parsing
 
+> related files: src/tiger/absyn/absync.\*, src/tiger/parse/tiger.y, src/tiger/parse/parser.\*,  src/tiger/errormsg/errormsg.\*, src/tiger/symbol/symbol.\*
+
+Use [Bisonc++](https://fbb-git.gitlab.io/bisoncpp/manual/bisonc++.html) to **implement a parser** for the Tiger language.
+
+Bisonc++ is a general-purpose parser generator converting grammar descriptions for LALR(1) context-free grammars into C++ classes whose members can parse such grammars. I wrote the correct rules in tiger.y that describes a parser, which generated a proper abstract syntax tree for every given tiger source file.
+
+## Lab 4: Type Checking
+
+> related files: src/tiger/semant/semant.\*, src/tiger/semant/type.\*, src/tiger/env/env.\*
+
+Write **a type-checking phase** for your compiler, a module **semant** describes this phase.
+
+## Lab 5: Tiger Compiler without register allocation
+
+> related files: src/tiger/frame/.\*, src/tiger/translate/.\*, src/tiger/runtime/runtime.c, src/tiger/env/env.\*, src/tiger/escape/escape.\*, src/tiger/canon/.\*, src/tiger/codegen/.\*, src/tiger/output/output.\*
+
+### Part 1: Escape Analysis and Translation
+
+Do the **escape analysis** and **translation** of tiger compiler, which leads to a complete IR tree.
+
+I worked on the following modules: { x64 stack frame } { IR tree translation} { escape analysis }.
+
+### Part 2: Code Generation
+
+Write a complete runnable tiger compiler, my goal is to make the compiler **generate working code** that runs on x86-64 platform (without register allocation).
+
+I worked on the following modules: { x64 stack frame } { IR tree translation} { code generation }.
+
+## Lab 6: Register Allocation
+
+> related files: src/tiger/liveness/.\*, src/tiger/regalloc/.\*
+
+Finish **register allocation** in the tiger compiler.
+
+The job of the register allocator is to **assign the many temporaries to a small number of machine registers**, and, where possible, to **assign the source and destination of a MOVE to the same register** so that the MOVE can be deleted.
+
+I worked on the following modules: { liveness analysis } { register allocation }.
+
+## Commands
+
+### Installing Dependencies
 ```bash
 # Run this command in the root directory of the project
 docker run -it --privileged -p 2222:22 -v $(pwd):/home/stu/tiger-compiler ipadsse302/tigerlabs_env:latest  # or make docker-run
 ```
 
-## Compiling and Debugging
+### Compiling and Debugging
 
 There are five makeable targets in total, including `test_slp`, `test_lex`, `test_parse`, `test_semant`,  and `tiger-compiler`.
 
@@ -74,10 +115,7 @@ mkdir build && cd build && cmake .. && make test_xxx  # or `make build`
 gdb test_xxx # e.g. `gdb test_slp`
 ```
 
-**Note: we will use `-DCMAKE_BUILD_TYPE=Release` to grade your labs, so make
-sure your lab passed the released version**
-
-## Testing Your Labs
+### Testing and Grading
 
 Use `make`
 ```bash
@@ -88,43 +126,3 @@ You can test all the labs by
 ```bash
 make gradeall
 ```
-
-## Submitting Your Labs
-
-
-Push your code to your GitLab repo
-```bash
-git add somefiles
-git commit -m "A message"
-git push
-```
-
-**Note, each experiment has a separate branch, such as `lab1`. When you finish the `lab1`, you must submit the code to the `lab1` branch. Otherwise, you won't get a full score in your lab.**
-
-## Formatting Your Codes
-
-We provide an LLVM-style .clang-format file in the project directory. You can use it to format your code.
-
-Use `clang-format` command
-```
-find . \( -name "*.h" -o -iname "*.cc" \) | xargs clang-format -i -style=file  # or make format
-```
-
-or config the clang-format file in your IDE and use the built-in format feature in it.
-
-## Other Commands
-
-Utility commands can be found in the `Makefile`. They can be directly run by `make xxx` in a Unix shell. Windows users cannot use the `make` command, but the contents of `Makefile` can still be used as a reference for the available commands.
-
-## Contributing to Tiger Compiler
-
-You can post questions, issues, feedback, or even MR proposals through [our main GitLab repository](https://ipads.se.sjtu.edu.cn:2020/compilers-2021/compilers-2021/issues). We are rapidly refactoring the original C tiger compiler implementation into modern C++ style, so any suggestion to make this lab better is welcomed.
-
-## External Documentations
-
-You can read external documentations on our course website:
-
-- [Lab Assignments](https://ipads.se.sjtu.edu.cn/courses/compilers/labs.shtml)
-- [Environment Configuration of Tiger Compiler Labs](https://ipads.se.sjtu.edu.cn/courses/compilers/tiger-compiler-environment.html)
-<!---- [Tiger Compiler in Modern C++ Style](https://ipads.se.sjtu.edu.cn/courses/compilers/tiger-compiler-cpp-style.html)-->
-
