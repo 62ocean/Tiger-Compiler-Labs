@@ -1,25 +1,28 @@
 # Tiger Compiler Labs in C++
 
+## Overview
+
+Course project of SJTU SE3356, 2023.
+
+The project covers a series of labs, ultimately resulting in a complete compiler that translates Tiger language into x86 assembly. 
+
 ## Contents
 
 - [Tiger Compiler Labs in C++](#tiger-compiler-labs-in-c)
-  - [Contents](#contents)
   - [Overview](#overview)
+  - [Contents](#contents)
   - [Lab 1: Straight-line Program Interpreter](#lab-1-straight-line-program-interpreter)
   - [Lab 2: Lexical Analysis](#lab-2-lexical-analysis)
   - [Lab 3: Parsing](#lab-3-parsing)
   - [Lab 4: Type Checking](#lab-4-type-checking)
   - [Lab 5: Tiger Compiler without register allocation](#lab-5-tiger-compiler-without-register-allocation)
+    - [Part 1: Escape Analysis and Translation](#part-1-escape-analysis-and-translation)
+    - [Part 2: Code Generation](#part-2-code-generation)
   - [Lab 6: Register Allocation](#lab-6-register-allocation)
   - [Commands](#commands)
-
-## Overview
-
-Course project of SJTU SE3355, 2022.
-
-The project covers a series of labs, ultimately resulting in a complete compiler that translates Tiger language into x86 assembly. 
-
-TAs provided C++ frameworks for these labs, and I implemented the contents.
+    - [Installing Dependencies](#installing-dependencies)
+    - [Compiling and Debugging](#compiling-and-debugging)
+    - [Testing and Grading](#testing-and-grading)
 
 ## Lab 1: Straight-line Program Interpreter
 
